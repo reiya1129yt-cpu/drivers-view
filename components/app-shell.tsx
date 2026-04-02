@@ -6,6 +6,7 @@ import BottomNav from "@/components/bottom-nav";
 import MapScreen from "@/components/map-screen";
 import PostScreen from "@/components/post-screen";
 import MoreScreen from "@/components/more-screen";
+import { MOCK_STATIONS } from "@/lib/mock-data";
 import type { GasStation } from "@/lib/types";
 
 type Tab = "map" | "post" | "more";
@@ -17,13 +18,13 @@ const fetcher = async (url: string) => {
 };
 
 export default function AppShell() {
-  const [activeTab, setActiveTab] = useState<Tab>("map");
+  const [activeTab, setActiveTab]   = useState<Tab>("map");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  const { data: stations = [] } = useSWR<GasStation[]>(
+  const { data: stations = MOCK_STATIONS } = useSWR<GasStation[]>(
     "/api/gas-stations",
     fetcher,
-    { refreshInterval: 30000 }
+    { fallbackData: MOCK_STATIONS, refreshInterval: 30000 }
   );
 
   const handleLocationFound = useCallback((latlng: { lat: number; lng: number }) => {
@@ -36,9 +37,8 @@ export default function AppShell() {
 
   return (
     <main style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "#0f1117", overflow: "hidden" }}>
-      {/* Screen area */}
       <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
-        {/* Map — always mounted to avoid Leaflet reinit */}
+        {/* Map always mounted — keeps Leaflet alive across tab switches */}
         <div style={{ position: "absolute", inset: 0, display: activeTab === "map" ? "block" : "none" }}>
           <MapScreen stations={stations} onLocationFound={handleLocationFound} />
         </div>

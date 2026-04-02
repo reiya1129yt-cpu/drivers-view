@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "必須フィールドが不足しています" }, { status: 400 });
     }
 
-    if (!["regular", "high_octane", "diesel"].includes(body.fuel_type)) {
+    if (!["regular", "high_octane", "diesel", "ev_charging"].includes(body.fuel_type)) {
       return NextResponse.json({ error: "無効な燃料タイプです" }, { status: 400 });
     }
 
