@@ -69,3 +69,24 @@ body {
 .leaflet-control {
   z-index: 8;
 }
+
+/* Custom marker styles */
+.custom-fuel-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.user-location-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Popup styles */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.leaflet-popup-content {
+  margin: 8px 12px;
+}

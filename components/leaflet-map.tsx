@@ -1,29 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMap,
-} from "react-leaflet";
+import { useEffect, useState, useCallback } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import type { GasStation, GasStationInput } from "@/lib/types";
+import GasStationMarker from "./gas-station-marker";
 
-// Fix for default marker icons not showing in Leaflet with bundlers
-// This is a known issue where the default icon URLs are not resolved correctly
-const defaultIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+// User location marker icon (blue)
+const userIcon = L.divIcon({
+  className: "user-location-marker",
+  html: `
+    <div style="
+      background: #3b82f6;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 0 0 2px #3b82f6, 0 2px 8px rgba(0,0,0,0.3);
+    "></div>
+  `,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
 });
-
-L.Marker.prototype.options.icon = defaultIcon;
 
 // Component to handle map resizing on mobile
 function MapResizeHandler() {
@@ -35,7 +34,6 @@ function MapResizeHandler() {
     };
 
     window.addEventListener("resize", handleResize);
-    // Invalidate size after initial render to fix mobile display issues
     setTimeout(() => map.invalidateSize(), 100);
 
     return () => {
@@ -47,26 +45,30 @@ function MapResizeHandler() {
 }
 
 // Component to get user's current location
-function LocationMarker() {
+function LocationMarker({
+  onLocationFound,
+}: {
+  onLocationFound: (latlng: { lat: number; lng: number }) => void;
+}) {
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const map = useMap();
 
   useEffect(() => {
-    map.locate({ setView: true, maxZoom: 16 });
+    map.locate({ setView: true, maxZoom: 14 });
 
     map.on("locationfound", (e) => {
       setPosition(e.latlng);
-      map.flyTo(e.latlng, 16);
+      onLocationFound({ lat: e.latlng.lat, lng: e.latlng.lng });
+      map.flyTo(e.latlng, 14);
     });
 
     map.on("locationerror", () => {
-      // If location access is denied, stay at default location
       console.log("Location access denied or unavailable");
     });
-  }, [map]);
+  }, [map, onLocationFound]);
 
   return position ? (
-    <Marker position={position}>
+    <Marker position={position} icon={userIcon}>
       <Popup>
         <span className="font-medium">You are here</span>
       </Popup>
@@ -74,25 +76,46 @@ function LocationMarker() {
   ) : null;
 }
 
+// Component to fly to a specific location
+function FlyToLocation({ location }: { location: [number, number] | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (location) {
+      map.flyTo(location, 16);
+    }
+  }, [map, location]);
+
+  return null;
+}
+
 interface LeafletMapProps {
   center?: [number, number];
   zoom?: number;
   showUserLocation?: boolean;
-  markers?: Array<{
-    position: [number, number];
-    popup?: string;
-  }>;
+  stations: GasStation[];
+  onLocationFound: (latlng: { lat: number; lng: number }) => void;
+  flyToLocation?: [number, number] | null;
   className?: string;
 }
 
 export default function LeafletMap({
-  center = [35.6762, 139.6503], // Default: Tokyo
+  center = [35.6762, 139.6503],
   zoom = 13,
   showUserLocation = true,
-  markers = [],
+  stations = [],
+  onLocationFound,
+  flyToLocation = null,
   className = "",
 }: LeafletMapProps) {
   const [isMounted, setIsMounted] = useState(false);
+
+  const handleLocationFound = useCallback(
+    (latlng: { lat: number; lng: number }) => {
+      onLocationFound(latlng);
+    },
+    [onLocationFound]
+  );
 
   useEffect(() => {
     setIsMounted(true);
@@ -144,12 +167,13 @@ export default function LeafletMap({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapResizeHandler />
-      {showUserLocation && <LocationMarker />}
-      {markers.map((marker, index) => (
-        <Marker key={index} position={marker.position}>
-          {marker.popup && <Popup>{marker.popup}</Popup>}
-        </Marker>
+      {showUserLocation && (
+        <LocationMarker onLocationFound={handleLocationFound} />
+      )}
+      {stations.map((station) => (
+        <GasStationMarker key={station.id} station={station} />
       ))}
+      <FlyToLocation location={flyToLocation} />
     </MapContainer>
   );
 }

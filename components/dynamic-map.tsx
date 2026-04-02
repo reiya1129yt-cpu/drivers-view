@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { GasStation } from "@/lib/types";
 
 // Dynamically import the LeafletMap component with SSR disabled
 // This is REQUIRED for Leaflet to work in Next.js because:
@@ -44,10 +45,9 @@ interface DynamicMapProps {
   center?: [number, number];
   zoom?: number;
   showUserLocation?: boolean;
-  markers?: Array<{
-    position: [number, number];
-    popup?: string;
-  }>;
+  stations: GasStation[];
+  onLocationFound: (latlng: { lat: number; lng: number }) => void;
+  flyToLocation?: [number, number] | null;
   className?: string;
 }
 
