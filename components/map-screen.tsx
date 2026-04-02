@@ -13,10 +13,11 @@ interface MapScreenProps {
 type FilterType = FuelType | "all";
 
 const FILTERS: { id: FilterType; label: string }[] = [
-  { id: "all", label: "すべて" },
-  { id: "regular", label: FUEL_TYPE_LABELS.regular },
+  { id: "all",         label: "すべて" },
+  { id: "regular",     label: FUEL_TYPE_LABELS.regular },
   { id: "high_octane", label: FUEL_TYPE_LABELS.high_octane },
-  { id: "diesel", label: FUEL_TYPE_LABELS.diesel },
+  { id: "diesel",      label: FUEL_TYPE_LABELS.diesel },
+  { id: "ev_charging", label: FUEL_TYPE_LABELS.ev_charging },
 ];
 
 export default function MapScreen({ stations, onLocationFound }: MapScreenProps) {
@@ -28,12 +29,14 @@ export default function MapScreen({ stations, onLocationFound }: MapScreenProps)
   return (
     <div style={{ position: "relative", height: "100%", width: "100%" }}>
       {/* Fuel filter bar */}
-      <div style={{
-        position: "absolute", top: 16, left: 12, right: 12, zIndex: 1000,
-        display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2,
-        // hide scrollbar
-        scrollbarWidth: "none",
-      }}>
+      <div
+        suppressHydrationWarning
+        style={{
+          position: "absolute", top: 16, left: 12, right: 12, zIndex: 1000,
+          display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2,
+          scrollbarWidth: "none",
+        }}
+      >
         {FILTERS.map((f) => {
           const isActive = selectedFuel === f.id;
           const color = f.id !== "all" ? FUEL_TYPE_COLORS[f.id as FuelType] : "#22c55e";
