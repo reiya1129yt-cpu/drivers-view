@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -33,27 +33,45 @@ function MapResizeHandler() {
   return null;
 }
 
-function LocationMarker({ onLocationFound }: { onLocationFound: (latlng: { lat: number; lng: number }) => void }) {
-  const [position, setPosition] = useState<L.LatLng | null>(null);
+function LocationMarker({
+  onLocationFound,
+}: {
+  onLocationFound: (latlng: { lat: number; lng: number }) => void;
+}) {
+  const positionRef = useRef<L.LatLng | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
   const map = useMap();
 
   useEffect(() => {
     map.locate({ setView: true, maxZoom: 14 });
-    map.on("locationfound", (e) => {
-      setPosition(e.latlng);
+
+    const onFound = (e: L.LocationEvent) => {
+      positionRef.current = e.latlng;
       onLocationFound({ lat: e.latlng.lat, lng: e.latlng.lng });
       map.flyTo(e.latlng, 14);
-    });
+      // Create marker imperatively to avoid re-render issues
+      if (markerRef.current) {
+        markerRef.current.setLatLng(e.latlng);
+      } else {
+        markerRef.current = L.marker(e.latlng, { icon: userIcon })
+          .addTo(map)
+          .bindPopup('<span style="color:#f0f2f5;font-weight:600;">現在地</span>');
+      }
+    };
+
+    map.on("locationfound", onFound);
     map.on("locationerror", () => {});
+
+    return () => {
+      map.off("locationfound", onFound);
+      if (markerRef.current) {
+        markerRef.current.remove();
+        markerRef.current = null;
+      }
+    };
   }, [map, onLocationFound]);
 
-  return position ? (
-    <Marker position={position} icon={userIcon}>
-      <Popup>
-        <span style={{ color: "#f0f2f5", fontWeight: 600 }}>現在地</span>
-      </Popup>
-    </Marker>
-  ) : null;
+  return null;
 }
 
 function FlyToLocation({ location }: { location: [number, number] | null }) {
@@ -83,26 +101,25 @@ export default function LeafletMap({
   flyToLocation = null,
   className = "",
 }: LeafletMapProps) {
-  const [isMounted, setIsMounted] = useState(false);
-  const handleLocationFound = useCallback((latlng: { lat: number; lng: number }) => {
-    onLocationFound(latlng);
-  }, [onLocationFound]);
+  // Store the Leaflet map instance so we can destroy it on unmount,
+  // preventing the "Map container is being reused" error on HMR / remount.
+  const mapRef = useRef<L.Map | null>(null);
 
-  useEffect(() => { setIsMounted(true); }, []);
+  const handleLocationFound = useCallback(
+    (latlng: { lat: number; lng: number }) => {
+      onLocationFound(latlng);
+    },
+    [onLocationFound]
+  );
 
-  if (!isMounted) {
-    return (
-      <div className={`flex items-center justify-center ${className}`} style={{ background: "#1a1d27", minHeight: "400px" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", color: "#6b7280" }}>
-          <svg className="w-8 h-8 animate-spin" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="#2a2f42" strokeWidth="4" />
-            <path d="M4 12a8 8 0 018-8" stroke="#22c55e" strokeWidth="4" strokeLinecap="round" />
-          </svg>
-          <span style={{ fontSize: "14px" }}>マップを読み込み中...</span>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <MapContainer
@@ -111,13 +128,18 @@ export default function LeafletMap({
       scrollWheelZoom={true}
       className={className}
       style={{ minHeight: "400px", height: "100%", width: "100%" }}
+      ref={(instance) => {
+        if (instance) mapRef.current = instance;
+      }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapResizeHandler />
-      {showUserLocation && <LocationMarker onLocationFound={handleLocationFound} />}
+      {showUserLocation && (
+        <LocationMarker onLocationFound={handleLocationFound} />
+      )}
       {stations.map((station) => (
         <GasStationMarker key={station.id} station={station} />
       ))}
