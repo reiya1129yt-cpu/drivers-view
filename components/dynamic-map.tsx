@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { GasStation } from "@/lib/types";
+import type { LeafletMapProps } from "@/components/leaflet-map";
 
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
   ssr: false,
@@ -21,13 +21,6 @@ const LeafletMap = dynamic(() => import("./leaflet-map"), {
   ),
 });
 
-interface DynamicMapProps {
-  stations: GasStation[];
-  onLocationFound: (latlng: { lat: number; lng: number }) => void;
-  fuelFilter: string;
-  flyTo?: { lat: number; lng: number; zoom?: number } | null;
-}
-
-export default function DynamicMap(props: DynamicMapProps) {
+export default function DynamicMap(props: LeafletMapProps) {
   return <LeafletMap {...props} />;
 }

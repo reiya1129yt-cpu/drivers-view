@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import DynamicMap from "@/components/dynamic-map";
 import type { FuelType, GasStation } from "@/lib/types";
 import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS } from "@/lib/types";
-import { MOCK_STATIONS } from "@/lib/mock-data";
+import { MOCK_STATIONS } from "@/lib/mock-data"; // mock fallback
 
 type FilterType = FuelType | "all";
 
@@ -101,9 +101,11 @@ export default function MapScreen({ stations, onLocationFound }: MapScreenProps)
       {/* ── Top bar: filter + search toggle ───────────────────────────────── */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, zIndex: 1000,
-        padding: "12px 12px 8px",
-        background: "linear-gradient(to bottom, rgba(15,17,23,0.95) 70%, transparent)",
+        padding: "12px 12px 10px",
+        background: "#0f1117",
+        borderBottom: "1px solid #1e2235",
         display: "flex", flexDirection: "column", gap: 8,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
       }}>
 
         {/* Search bar */}
@@ -158,41 +160,46 @@ export default function MapScreen({ stations, onLocationFound }: MapScreenProps)
         ) : (
           /* Filter pills row + search button */
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Solid tab strip — fully opaque, map never bleeds through */}
             <div style={{
-              flex: 1, display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2,
-              scrollbarWidth: "none",
+              flex: 1, display: "flex", gap: 6, overflowX: "auto",
+              scrollbarWidth: "none", paddingBottom: 1,
             }}>
               {FILTERS.map((f) => {
                 const isActive = selectedFuel === f.id;
                 const color = f.id !== "all" ? FUEL_TYPE_COLORS[f.id as FuelType] : "#ef4444";
-                const count = f.id === "all" ? allStations.length : allStations.filter((s) => s.fuel_type === f.id).length;
+                const count = f.id === "all"
+                  ? allStations.length
+                  : allStations.filter((s) => s.fuel_type === f.id).length;
                 return (
                   <button
                     key={f.id}
                     onClick={() => setSelectedFuel(f.id)}
                     style={{
                       display: "flex", alignItems: "center", gap: 5,
-                      padding: "7px 13px",
-                      borderRadius: 999,
+                      padding: "7px 12px",
+                      borderRadius: 8,
                       border: `1.5px solid ${isActive ? color : "#2a2f42"}`,
-                      background: isActive ? `${color}22` : "rgba(20,23,33,0.92)",
+                      background: isActive ? `${color}20` : "#1a1d27",
                       color: isActive ? color : "#9ca3af",
                       fontSize: 12, fontWeight: 700,
                       cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-                      backdropFilter: "blur(8px)",
-                      boxShadow: isActive ? `0 2px 12px ${color}44` : "0 1px 4px rgba(0,0,0,0.4)",
-                      transition: "all 0.15s",
+                      boxShadow: isActive ? `0 0 0 1px ${color}55` : "none",
+                      transition: "all 0.12s",
                     }}
                   >
                     {f.id !== "all" && (
-                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                      <span style={{
+                        width: 7, height: 7, borderRadius: "50%",
+                        background: color, flexShrink: 0,
+                      }} />
                     )}
                     {f.label}
                     <span style={{
-                      fontSize: 10, fontWeight: 700, minWidth: 16, textAlign: "center",
-                      background: isActive ? `${color}33` : "#1e2235",
-                      color: isActive ? color : "#6b7280",
-                      padding: "0px 5px", borderRadius: 999,
+                      fontSize: 10, fontWeight: 800,
+                      background: isActive ? `${color}30` : "#12151f",
+                      color: isActive ? color : "#4b5563",
+                      padding: "1px 6px", borderRadius: 4, minWidth: 18, textAlign: "center",
                     }}>{count}</span>
                   </button>
                 );
@@ -263,7 +270,6 @@ export default function MapScreen({ stations, onLocationFound }: MapScreenProps)
       <DynamicMap
         stations={filteredStations}
         onLocationFound={onLocationFound}
-        fuelFilter={selectedFuel}
         flyTo={flyTo}
       />
     </div>
