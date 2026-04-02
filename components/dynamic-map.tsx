@@ -8,7 +8,7 @@ const LeafletMap = dynamic(() => import("./leaflet-map"), {
   loading: () => (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "center",
-      background: "#1a1d27", width: "100%", height: "100%",
+      background: "#0f1117", width: "100%", height: "100%",
     }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, color: "#6b7280" }}>
         <svg style={{ width: 32, height: 32, animation: "spin 1s linear infinite" }} viewBox="0 0 24 24" fill="none">

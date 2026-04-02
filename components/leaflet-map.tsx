@@ -1,63 +1,106 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
-import type { GasStation } from "@/lib/types";
-import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS, FUEL_TYPE_BG } from "@/lib/types";
+import type { GasStation, PaSaSpot } from "@/lib/types";
+import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS, FUEL_TYPE_BG, CONGESTION_LABELS, CONGESTION_COLORS } from "@/lib/types";
 
 // ── SVG icon builders ─────────────────────────────────────────────────────────
 
-const NOZZLE_PATH =
-  "M7 19 L7 11 Q7 8 10 8 L12 8 L12 6 Q12 4 14 4 L17 4 Q19 4 19 6 L19 11 Q19 13 17 13 L14 13 Q12 13 12 11 L12 9 L10 9 Q10 10 10 11 L10 19 Z M20 6 Q22 6 22 9 L22 12 Q22 14 20 14";
+// Fuel nozzle path (red for gas, orange/blue for other fuel types)
+const NOZZLE_PATH = "M6 20 L6 12 Q6 9 9 9 L11 9 L11 7 Q11 5 13 5 L16 5 Q18 5 18 7 L18 12 Q18 14 16 14 L13 14 Q11 14 11 12 L11 10 L9 10 Q9 12 9 12 L9 20 Z M19 7 Q21 7 21 10 L21 13 Q21 15 19 15";
 
-const PLUG_PATH =
-  "M9 4 L9 8 M15 4 L15 8 M7 8 L17 8 L17 14 Q17 18 12 18 Q7 18 7 14 L7 8 Z M12 18 L12 22 M10 22 L14 22";
+// EV plug path (purple)
+const PLUG_PATH = "M8 3 L8 8 M16 3 L16 8 M6 8 L18 8 L18 15 Q18 20 12 20 Q6 20 6 15 L6 8 Z M12 20 L12 23 M9.5 23 L14.5 23 M11 12 L11 16 L13 14 L13 18";
 
-function buildIconSVG(
+// PA/SA highway sign icon
+const PASA_PATH = "M3 6 Q3 3 6 3 L18 3 Q21 3 21 6 L21 18 Q21 21 18 21 L6 21 Q3 21 3 18 Z M7 8 L7 16 M7 8 L12 14 L17 8 M17 8 L17 16";
+
+function buildBadgeSVG(
   iconPath: string,
   color: string,
   price: string,
-  label: string
+  label: string,
+  glowRing: boolean,
 ): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 64" width="88" height="64">
+  const ring = glowRing
+    ? `<rect x="1" y="1" width="86" height="46" rx="13" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.45"/>`
+    : "";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 66" width="88" height="66">
   <defs>
-    <filter id="ds" x="-25%" y="-25%" width="150%" height="150%">
-      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.65)"/>
+    <filter id="ds" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="rgba(0,0,0,0.7)"/>
     </filter>
+    ${glowRing ? `<filter id="glow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` : ""}
   </defs>
   <g filter="url(#ds)">
-    <rect x="3" y="2" width="82" height="44" rx="12" fill="#12151f" stroke="${color}" stroke-width="2.4"/>
-    <g transform="translate(9,10) scale(1.1)">
-      <path d="${iconPath}" stroke="${color}" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    ${ring}
+    <rect x="3" y="3" width="82" height="44" rx="11" fill="#0f1117" stroke="${color}" stroke-width="2.2"/>
+    <g transform="translate(10,12)">
+      <path d="${iconPath}" stroke="${color}" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
-    <text x="57" y="24" text-anchor="middle" font-family="system-ui,Arial,sans-serif" font-weight="900" font-size="18" fill="${color}">&#165;${price}</text>
-    <text x="57" y="37" text-anchor="middle" font-family="system-ui,Arial,sans-serif" font-weight="500" font-size="10" fill="#9ca3af" letter-spacing="0.5">${label}</text>
-    <polygon points="36,46 44,60 52,46" fill="#12151f" stroke="${color}" stroke-width="2.4" stroke-linejoin="round"/>
-    <polygon points="37.5,46 44,58 50.5,46" fill="#12151f"/>
+    <text x="57" y="26" text-anchor="middle" font-family="system-ui,Arial,sans-serif" font-weight="900" font-size="17" fill="${color}">&#165;${price}</text>
+    <text x="57" y="38" text-anchor="middle" font-family="system-ui,Arial,sans-serif" font-weight="600" font-size="9.5" fill="#9ca3af" letter-spacing="0.4">${label}</text>
+    <polygon points="36,47 44,62 52,47" fill="#0f1117" stroke="${color}" stroke-width="2.2" stroke-linejoin="round"/>
+    <polygon points="37.5,47 44,59.5 50.5,47" fill="#0f1117"/>
   </g>
 </svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
-function makeMarkerIcon(L: any, station: GasStation) {
-  const color = FUEL_TYPE_COLORS[station.fuel_type] ?? "#ef4444";
-  const label = FUEL_TYPE_LABELS[station.fuel_type] ?? "";
-  const price = Number(station.price).toFixed(0);
-  const url = buildIconSVG(
-    station.fuel_type === "ev_charging" ? PLUG_PATH : NOZZLE_PATH,
-    color,
-    price,
-    label
-  );
-  return L.icon({ iconUrl: url, iconSize: [88, 64], iconAnchor: [44, 60], popupAnchor: [0, -64] });
+function buildPaSaSVG(spot: PaSaSpot): string {
+  const congColor = CONGESTION_COLORS[spot.congestion];
+  const isOpen    = spot.status === "open";
+  const bgColor   = isOpen ? "#0f1117" : "#1a1a1a";
+  const borderColor = isOpen ? "#f59e0b" : "#4b5563";
+  const label     = spot.type;
+  const name      = spot.name.length > 6 ? spot.name.slice(0, 6) + "…" : spot.name;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 64" width="80" height="64">
+  <defs>
+    <filter id="ds2" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.65)"/>
+    </filter>
+  </defs>
+  <g filter="url(#ds2)">
+    <rect x="3" y="3" width="74" height="42" rx="9" fill="${bgColor}" stroke="${borderColor}" stroke-width="2"/>
+    <!-- PA/SA type badge -->
+    <rect x="8" y="8" width="22" height="16" rx="4" fill="${borderColor}33" stroke="${borderColor}" stroke-width="1.2"/>
+    <text x="19" y="20" text-anchor="middle" font-family="system-ui,Arial,sans-serif" font-weight="900" font-size="11" fill="${borderColor}">${label}</text>
+    <!-- Congestion dot -->
+    <circle cx="66" cy="12" r="5" fill="${congColor}"/>
+    <!-- Name -->
+    <text x="40" y="34" text-anchor="middle" font-family="system-ui,Arial,sans-serif" font-weight="700" font-size="11" fill="${isOpen ? "#f0f2f5" : "#6b7280"}">${name}</text>
+    <polygon points="30,45 40,59 50,45" fill="${bgColor}" stroke="${borderColor}" stroke-width="2" stroke-linejoin="round"/>
+    <polygon points="31.5,45 40,57.5 48.5,45" fill="${bgColor}"/>
+  </g>
+</svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+function makeStationIcon(L: any, station: GasStation) {
+  const color     = FUEL_TYPE_COLORS[station.fuel_type] ?? "#ef4444";
+  const label     = FUEL_TYPE_LABELS[station.fuel_type] ?? "";
+  const price     = Number(station.price).toFixed(0);
+  const iconPath  = station.fuel_type === "ev_charging" ? PLUG_PATH : NOZZLE_PATH;
+  const glowRing  = !!station.has_user_price;
+  const url       = buildBadgeSVG(iconPath, color, price, label, glowRing);
+  return L.icon({ iconUrl: url, iconSize: [88, 66], iconAnchor: [44, 62], popupAnchor: [0, -66] });
+}
 
-function renderMarkers(L: any, map: any, stations: GasStation[], markersRef: React.MutableRefObject<any[]>) {
-  // Clear existing
-  markersRef.current.forEach((m) => { try { m.remove(); } catch {} });
+function makePaSaIcon(L: any, spot: PaSaSpot) {
+  const url = buildPaSaSVG(spot);
+  return L.icon({ iconUrl: url, iconSize: [80, 64], iconAnchor: [40, 60], popupAnchor: [0, -64] });
+}
+
+// ── Render helpers ────────────────────────────────────────────────────────────
+
+function renderStationMarkers(
+  L: any, map: any,
+  stations: GasStation[],
+  markersRef: React.MutableRefObject<any[]>
+) {
+  markersRef.current.forEach((m) => { try { map.removeLayer(m); } catch {} });
   markersRef.current = [];
 
   stations.forEach((station) => {
@@ -66,28 +109,67 @@ function renderMarkers(L: any, map: any, stations: GasStation[], markersRef: Rea
     const bg    = FUEL_TYPE_BG[station.fuel_type]     ?? "rgba(239,68,68,0.15)";
     const unit  = station.fuel_type === "ev_charging" ? "/kWh" : "/L";
 
-    const icon = makeMarkerIcon(L, station);
+    const icon  = makeStationIcon(L, station);
 
-    const reportedDate = new Date(station.reported_at).toLocaleDateString("ja-JP", {
+    const dt = new Date(station.reported_at).toLocaleDateString("ja-JP", {
       month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
     });
 
+    const userBadge = station.has_user_price
+      ? `<span style="display:inline-block;background:#22c55e22;color:#22c55e;border:1px solid #22c55e55;border-radius:6px;font-size:10px;font-weight:700;padding:1px 7px;margin-bottom:6px;">ユーザー投稿価格</span><br/>`
+      : "";
+
     const popup = L.popup({ className: "dark-popup", maxWidth: 240 }).setContent(`
       <div style="min-width:190px;padding:4px 2px;">
-        <div style="font-weight:700;font-size:15px;color:#f0f2f5;margin-bottom:8px;line-height:1.35;">${station.station_name}</div>
+        <div style="font-weight:700;font-size:15px;color:#f0f2f5;margin-bottom:6px;line-height:1.35;">${station.station_name}</div>
+        ${userBadge}
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
           <span style="background:${bg};color:${color};padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid ${color}55;">${label}</span>
           <span style="font-size:22px;font-weight:900;color:${color};">&#165;${Number(station.price).toFixed(0)}</span>
           <span style="font-size:12px;color:#6b7280;">${unit}</span>
         </div>
         ${station.comment ? `<div style="font-size:12px;color:#9ca3af;background:#1a1d2a;padding:6px 8px;border-radius:8px;margin-bottom:6px;">&ldquo;${station.comment}&rdquo;</div>` : ""}
-        <div style="font-size:11px;color:#4b5563;">${reportedDate} 更新</div>
+        <div style="font-size:11px;color:#4b5563;">${dt} 更新</div>
       </div>
     `);
 
-    const marker = L.marker([station.latitude, station.longitude], { icon })
-      .addTo(map)
-      .bindPopup(popup);
+    const marker = L.marker([station.latitude, station.longitude], { icon }).addTo(map).bindPopup(popup);
+    markersRef.current.push(marker);
+  });
+}
+
+function renderPaSaMarkers(
+  L: any, map: any,
+  spots: PaSaSpot[],
+  markersRef: React.MutableRefObject<any[]>
+) {
+  markersRef.current.forEach((m) => { try { map.removeLayer(m); } catch {} });
+  markersRef.current = [];
+
+  spots.forEach((spot) => {
+    const icon = makePaSaIcon(L, spot);
+    const congColor = CONGESTION_COLORS[spot.congestion];
+    const statusLabel = spot.status === "open" ? "営業中" : "閉鎖中";
+    const congLabel = CONGESTION_LABELS[spot.congestion];
+
+    const popup = L.popup({ className: "dark-popup", maxWidth: 240 }).setContent(`
+      <div style="min-width:190px;padding:4px 2px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">${spot.type}</span>
+          <span style="font-weight:700;font-size:15px;color:#f0f2f5;">${spot.name}</span>
+        </div>
+        <div style="font-size:12px;color:#9ca3af;margin-bottom:6px;">${spot.highway}</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <span style="background:${spot.status === "open" ? "#22c55e22" : "#4b556322"};color:${spot.status === "open" ? "#22c55e" : "#6b7280"};border:1px solid ${spot.status === "open" ? "#22c55e55" : "#4b556355"};padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">${statusLabel}</span>
+          <span style="background:${congColor}22;color:${congColor};border:1px solid ${congColor}55;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">${congLabel}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          ${spot.facilities.map(f => `<span style="background:#22263a;color:#9ca3af;padding:2px 8px;border-radius:6px;font-size:11px;">${f}</span>`).join("")}
+        </div>
+      </div>
+    `);
+
+    const marker = L.marker([spot.latitude, spot.longitude], { icon }).addTo(map).bindPopup(popup);
     markersRef.current.push(marker);
   });
 }
@@ -98,6 +180,7 @@ export interface LeafletMapProps {
   center?: [number, number];
   zoom?: number;
   stations: GasStation[];
+  pasaSpots?: PaSaSpot[];
   onLocationFound: (latlng: { lat: number; lng: number }) => void;
   flyTo?: { lat: number; lng: number; zoom?: number } | null;
 }
@@ -106,21 +189,22 @@ export default function LeafletMap({
   center = [35.6762, 139.6503],
   zoom = 12,
   stations,
+  pasaSpots = [],
   onLocationFound,
   flyTo,
 }: LeafletMapProps) {
-  const containerRef      = useRef<HTMLDivElement>(null);
-  const mapRef            = useRef<any>(null);
-  const LRef              = useRef<any>(null);
-  const markersRef        = useRef<any[]>([]);
-  const userMarkerRef     = useRef<any>(null);
+  const containerRef       = useRef<HTMLDivElement>(null);
+  const mapRef             = useRef<any>(null);
+  const LRef               = useRef<any>(null);
+  const stationMarkersRef  = useRef<any[]>([]);
+  const pasaMarkersRef     = useRef<any[]>([]);
+  const userMarkerRef      = useRef<any>(null);
   const onLocationFoundRef = useRef(onLocationFound);
   onLocationFoundRef.current = onLocationFound;
 
-  // mapReady triggers the markers effect after async init completes
   const [mapReady, setMapReady] = useState(false);
 
-  // ── Init map once (async, cancellation-safe) ─────────────────────────────────
+  // ── Init map (one-time, async, cancellation-safe) ─────────────────────────
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     if ((containerRef.current as any)._leaflet_id) return;
@@ -148,10 +232,10 @@ export default function LeafletMap({
       map.on("locationfound", (e: any) => {
         if (!mapRef.current) return;
         onLocationFoundRef.current({ lat: e.latlng.lat, lng: e.latlng.lng });
-        map.flyTo(e.latlng, 14);
+        map.flyTo(e.latlng, 13);
         const userIcon = L.divIcon({
           className: "",
-          html: `<div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 4px rgba(59,130,246,0.3),0 2px 8px rgba(0,0,0,0.4);"></div>`,
+          html: `<div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 4px rgba(59,130,246,0.3),0 2px 8px rgba(0,0,0,0.5);"></div>`,
           iconSize: [16, 16], iconAnchor: [8, 8],
         });
         if (userMarkerRef.current) {
@@ -163,13 +247,12 @@ export default function LeafletMap({
         }
       });
 
-      const onResize = () => map.invalidateSize();
+      const onResize = () => { try { map.invalidateSize(); } catch {} };
       window.addEventListener("resize", onResize);
-      setTimeout(() => map.invalidateSize(), 300);
+      setTimeout(() => { try { map.invalidateSize(); } catch {} }, 300);
       (map as any)._resizeCleanup = () => window.removeEventListener("resize", onResize);
 
-      // Signal that the map is ready — triggers the markers effect
-      setMapReady(true);
+      setMapReady(true);  // triggers markers effect
     });
 
     return () => {
@@ -182,46 +265,46 @@ export default function LeafletMap({
         } catch {}
         mapRef.current = null;
         LRef.current   = null;
-        markersRef.current = [];
-        userMarkerRef.current = null;
+        stationMarkersRef.current = [];
+        pasaMarkersRef.current    = [];
+        userMarkerRef.current     = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Draw / redraw markers whenever stations OR mapReady changes ───────────────
+  // ── Redraw station markers when map is ready OR stations change ───────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || !LRef.current) return;
-    renderMarkers(LRef.current, mapRef.current, stations, markersRef);
+    renderStationMarkers(LRef.current, mapRef.current, stations, stationMarkersRef);
   }, [mapReady, stations]);
 
-  // ── External flyTo ────────────────────────────────────────────────────────────
+  // ── Redraw PA/SA markers when map is ready OR pasaSpots change ────────────
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !LRef.current) return;
+    renderPaSaMarkers(LRef.current, mapRef.current, pasaSpots, pasaMarkersRef);
+  }, [mapReady, pasaSpots]);
+
+  // ── External flyTo ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!flyTo || !mapRef.current) return;
     try {
-      mapRef.current.stop(); // cancel any in-progress animation first
+      mapRef.current.stop();
       mapRef.current.flyTo([flyTo.lat, flyTo.lng], flyTo.zoom ?? 15, { duration: 1.0 });
-    } catch {
-      // map may have been destroyed between render and effect
-    }
+    } catch {}
   }, [flyTo]);
 
   return (
     <>
       <style>{`
         .dark-popup .leaflet-popup-content-wrapper {
-          background: #1e2235;
-          border: 1px solid #2a2f42;
-          border-radius: 14px;
-          box-shadow: 0 10px 32px rgba(0,0,0,0.6);
-          padding: 6px;
+          background: #1e2235; border: 1px solid #2a2f42;
+          border-radius: 14px; box-shadow: 0 10px 32px rgba(0,0,0,0.65); padding: 6px;
         }
         .dark-popup .leaflet-popup-tip { background: #1e2235; }
         .dark-popup .leaflet-popup-close-button {
-          color: #6b7280 !important;
-          font-size: 18px !important;
-          top: 8px !important;
-          right: 10px !important;
+          color: #6b7280 !important; font-size: 18px !important;
+          top: 8px !important; right: 10px !important;
         }
         .dark-popup .leaflet-popup-close-button:hover { color: #f0f2f5 !important; }
         .leaflet-container { font-family: system-ui, sans-serif; }
