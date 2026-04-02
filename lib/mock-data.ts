@@ -1,4 +1,32 @@
-import type { GasStation, PaSaSpot } from "@/lib/types";
+import type { GasStation, PaSaSpot, FuelType } from "@/lib/types";
+
+/** Generate mock gas stations centered on the given lat/lng (within ~1.5 km radius) */
+export function generateNearbyStations(lat: number, lng: number): GasStation[] {
+  const now = new Date().toISOString();
+  const offsets: [number, number, string, FuelType, number, string | null][] = [
+    [ 0.004,  0.006, "コスモ石油 近隣店",      "regular",     165, "セルフ"      ],
+    [-0.006,  0.002, "Shell スタンド",          "regular",     162, null          ],
+    [ 0.002, -0.008, "ENEOS 近くのSS",          "regular",     168, "24h営業"    ],
+    [ 0.009,  0.004, "出光 付近SS",             "regular",     160, null          ],
+    [-0.004, -0.005, "apollostation 周辺",       "high_octane", 179, "会員割引あり"],
+    [ 0.007, -0.003, "コスモ ハイオク店",       "high_octane", 176, null          ],
+    [-0.009,  0.007, "ENEOS 軽油スタンド",      "diesel",      148, "大型対応"   ],
+    [ 0.005,  0.010, "出光 ディーゼル",         "diesel",      145, null          ],
+    [-0.003,  0.011, "ENEOSでんき EV充電",      "ev_charging",  55, "急速50kW"   ],
+  ];
+  return offsets.map(([dlat, dlng, name, fuel, price, comment], i) => ({
+    id:           `nearby_${i}`,
+    station_name: name,
+    fuel_type:    fuel,
+    price,
+    latitude:     lat + dlat,
+    longitude:    lng + dlng,
+    comment,
+    reported_at:  now,
+    created_at:   now,
+    has_user_price: i % 3 === 0,
+  }));
+}
 
 const now = new Date().toISOString();
 

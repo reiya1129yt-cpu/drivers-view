@@ -98,18 +98,22 @@ function makePaSaIcon(L: any, spot: PaSaSpot) {
 function renderStationMarkers(
   L: any, map: any,
   stations: GasStation[],
-  markersRef: React.MutableRefObject<any[]>
+  markersRef: React.MutableRefObject<any[]>,
+  isFavorite?: (id: string) => boolean,
+  canAddFavorite?: boolean,
+  onToggleFavorite?: (id: string) => void,
 ) {
   markersRef.current.forEach((m) => { try { map.removeLayer(m); } catch {} });
   markersRef.current = [];
 
   stations.forEach((station) => {
-    const color = FUEL_TYPE_COLORS[station.fuel_type] ?? "#ef4444";
-    const label = FUEL_TYPE_LABELS[station.fuel_type] ?? station.fuel_type;
-    const bg    = FUEL_TYPE_BG[station.fuel_type]     ?? "rgba(239,68,68,0.15)";
-    const unit  = station.fuel_type === "ev_charging" ? "/kWh" : "/L";
-
-    const icon  = makeStationIcon(L, station);
+    const color    = FUEL_TYPE_COLORS[station.fuel_type] ?? "#ef4444";
+    const label    = FUEL_TYPE_LABELS[station.fuel_type] ?? station.fuel_type;
+    const bg       = FUEL_TYPE_BG[station.fuel_type]     ?? "rgba(239,68,68,0.15)";
+    const unit     = station.fuel_type === "ev_charging" ? "/kWh" : "/L";
+    const icon     = makeStationIcon(L, station);
+    const isFav    = isFavorite?.(station.id) ?? false;
+    const canFav   = isFav || (canAddFavorite ?? true);
 
     const dt = new Date(station.reported_at).toLocaleDateString("ja-JP", {
       month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
@@ -119,8 +123,11 @@ function renderStationMarkers(
       ? `<span style="display:inline-block;background:#22c55e22;color:#22c55e;border:1px solid #22c55e55;border-radius:6px;font-size:10px;font-weight:700;padding:1px 7px;margin-bottom:6px;">ユーザー投稿価格</span><br/>`
       : "";
 
-    const popup = L.popup({ className: "dark-popup", maxWidth: 240 }).setContent(`
-      <div style="min-width:190px;padding:4px 2px;">
+    const favBtnStyle = `display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:${canFav ? "pointer" : "not-allowed"};border:1.5px solid ${isFav ? "#f59e0b" : "#2a2f42"};background:${isFav ? "#f59e0b22" : "#22263a"};color:${isFav ? "#f59e0b" : canFav ? "#9ca3af" : "#4b5563"};width:100%;justify-content:center;`;
+    const favBtnLabel = isFav ? "お気に入り済み" : canFav ? "お気に入りに追加" : "上限（3件）";
+
+    const popupContent = `
+      <div style="min-width:200px;padding:4px 2px;">
         <div style="font-weight:700;font-size:15px;color:#f0f2f5;margin-bottom:6px;line-height:1.35;">${station.station_name}</div>
         ${userBadge}
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
@@ -129,11 +136,28 @@ function renderStationMarkers(
           <span style="font-size:12px;color:#6b7280;">${unit}</span>
         </div>
         ${station.comment ? `<div style="font-size:12px;color:#9ca3af;background:#1a1d2a;padding:6px 8px;border-radius:8px;margin-bottom:6px;">&ldquo;${station.comment}&rdquo;</div>` : ""}
-        <div style="font-size:11px;color:#4b5563;">${dt} 更新</div>
+        <div style="font-size:11px;color:#4b5563;margin-bottom:4px;">${dt} 更新</div>
+        <button data-station-id="${station.id}" style="${favBtnStyle}">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="${isFav ? "#f59e0b" : "none"}" stroke="${isFav ? "#f59e0b" : "currentColor"}" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          ${favBtnLabel}
+        </button>
       </div>
-    `);
+    `;
+
+    const popup = L.popup({ className: "dark-popup", maxWidth: 250 }).setContent(popupContent);
 
     const marker = L.marker([station.latitude, station.longitude], { icon }).addTo(map).bindPopup(popup);
+
+    // Wire up the favorite button click after popup opens
+    marker.on("popupopen", () => {
+      const btn = document.querySelector<HTMLButtonElement>(`[data-station-id="${station.id}"]`);
+      if (btn && onToggleFavorite) {
+        btn.addEventListener("click", () => onToggleFavorite(station.id), { once: true });
+      }
+    });
+
     markersRef.current.push(marker);
   });
 }
@@ -183,6 +207,10 @@ export interface LeafletMapProps {
   pasaSpots?: PaSaSpot[];
   onLocationFound: (latlng: { lat: number; lng: number }) => void;
   flyTo?: { lat: number; lng: number; zoom?: number } | null;
+  userLocation?: { lat: number; lng: number } | null;
+  isFavorite?: (id: string) => boolean;
+  canAddFavorite?: boolean;
+  onToggleFavorite?: (id: string) => void;
 }
 
 export default function LeafletMap({
@@ -192,6 +220,10 @@ export default function LeafletMap({
   pasaSpots = [],
   onLocationFound,
   flyTo,
+  userLocation,
+  isFavorite,
+  canAddFavorite,
+  onToggleFavorite,
 }: LeafletMapProps) {
   const containerRef       = useRef<HTMLDivElement>(null);
   const mapRef             = useRef<any>(null);
@@ -203,6 +235,14 @@ export default function LeafletMap({
   onLocationFoundRef.current = onLocationFound;
 
   const [mapReady, setMapReady] = useState(false);
+
+  // Stable refs for optional callbacks — avoids dep-array size change
+  const isFavoriteRef       = useRef(isFavorite);
+  const canAddFavoriteRef   = useRef(canAddFavorite);
+  const onToggleFavoriteRef = useRef(onToggleFavorite);
+  isFavoriteRef.current       = isFavorite;
+  canAddFavoriteRef.current   = canAddFavorite;
+  onToggleFavoriteRef.current = onToggleFavorite;
 
   // ── Init map (one-time, async, cancellation-safe) ─────────────────────────
   useEffect(() => {
@@ -273,10 +313,15 @@ export default function LeafletMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Redraw station markers when map is ready OR stations change ───────────
+  // ── Redraw station markers when map is ready OR stations change ──────────
+  // Callbacks are accessed via stable refs so the dep array never changes size.
   useEffect(() => {
     if (!mapReady || !mapRef.current || !LRef.current) return;
-    renderStationMarkers(LRef.current, mapRef.current, stations, stationMarkersRef);
+    renderStationMarkers(
+      LRef.current, mapRef.current, stations, stationMarkersRef,
+      isFavoriteRef.current, canAddFavoriteRef.current, onToggleFavoriteRef.current,
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, stations]);
 
   // ── Redraw PA/SA markers when map is ready OR pasaSpots change ────────────
@@ -293,6 +338,15 @@ export default function LeafletMap({
       mapRef.current.flyTo([flyTo.lat, flyTo.lng], flyTo.zoom ?? 15, { duration: 1.0 });
     } catch {}
   }, [flyTo]);
+
+  const handleRecenter = () => {
+    if (!mapRef.current) return;
+    if (userLocation) {
+      try { mapRef.current.flyTo([userLocation.lat, userLocation.lng], 14, { duration: 0.9 }); } catch {}
+    } else {
+      mapRef.current.locate({ setView: true, maxZoom: 14 });
+    }
+  };
 
   return (
     <>
@@ -311,6 +365,24 @@ export default function LeafletMap({
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
       <div ref={containerRef} style={{ width: "100%", height: "100%", background: "#1a1d27" }} />
+      {/* Recenter button — bottom-right, above zoom controls */}
+      <button
+        onClick={handleRecenter}
+        title="現在地に戻る"
+        style={{
+          position: "absolute", bottom: 100, right: 12, zIndex: 1000,
+          width: 44, height: 44, borderRadius: 11,
+          background: "#1e2235", border: "1.5px solid #2a2f42",
+          boxShadow: "0 3px 12px rgba(0,0,0,0.5)",
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.2" strokeLinecap="round" style={{ width: 20, height: 20 }}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          <circle cx="12" cy="12" r="9" strokeOpacity="0.3" />
+        </svg>
+      </button>
     </>
   );
 }

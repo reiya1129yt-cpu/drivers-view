@@ -4,13 +4,17 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import DynamicMap from "@/components/dynamic-map";
 import type { FuelType, GasStation, PaSaSpot } from "@/lib/types";
 import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS } from "@/lib/types";
-import { MOCK_STATIONS, MOCK_PASA } from "@/lib/mock-data";
+import { MOCK_STATIONS, MOCK_PASA } from "@/lib/mock-data"; // v2
 
 type FilterType = FuelType | "all" | "pasa";
 
 interface MapScreenProps {
   stations: GasStation[];
   onLocationFound: (latlng: { lat: number; lng: number }) => void;
+  userLocation?: { lat: number; lng: number } | null;
+  isFavorite?: (id: string) => boolean;
+  canAddFavorite?: boolean;
+  onToggleFavorite?: (id: string) => void;
 }
 
 const FUEL_FILTERS: { id: FilterType; label: string; color: string }[] = [
@@ -34,15 +38,23 @@ async function geocodePlace(query: string): Promise<{ lat: number; lng: number }
   return null;
 }
 
-export default function MapScreen({ stations, onLocationFound }: MapScreenProps) {
+export default function MapScreen({ stations, onLocationFound, userLocation, isFavorite, canAddFavorite, onToggleFavorite }: MapScreenProps) {
   const [selectedFuel, setSelectedFuel] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery]   = useState("");
   const [searchOpen, setSearchOpen]     = useState(false);
+  const [searchCategory, setSearchCategory] = useState<"station" | "price" | "region" | "pasa">("station");
   const [flyTo, setFlyTo]               = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [searching, setSearching]       = useState(false);
   const [searchResults, setSearchResults] = useState<(GasStation | PaSaSpot)[]>([]);
   const [searchError, setSearchError]   = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const SEARCH_CATS = [
+    { id: "station" as const, label: "スタンド名" },
+    { id: "price"   as const, label: "価格" },
+    { id: "region"  as const, label: "エリア" },
+    { id: "pasa"    as const, label: "PA / SA" },
+  ];
 
   const allStations: GasStation[] = stations.length > 0 ? stations : MOCK_STATIONS;
   const allPaSa: PaSaSpot[]       = MOCK_PASA;
@@ -65,25 +77,42 @@ export default function MapScreen({ stations, onLocationFound }: MapScreenProps)
     setSearchError("");
     setSearchResults([]);
 
-    // Station name match
-    const stationMatches = allStations.filter((s) =>
-      s.station_name.toLowerCase().includes(q.toLowerCase())
-    );
-    // PA/SA name match
-    const pasaMatches = allPaSa.filter((p) =>
-      p.name.toLowerCase().includes(q.toLowerCase()) ||
-      p.highway.toLowerCase().includes(q.toLowerCase())
-    );
+    let stationMatches: GasStation[] = [];
+    let pasaMatches: PaSaSpot[] = [];
+
+    if (searchCategory === "station") {
+      stationMatches = allStations.filter((s) => s.station_name.toLowerCase().includes(q.toLowerCase()));
+    } else if (searchCategory === "price") {
+      const target = parseFloat(q);
+      if (!isNaN(target)) {
+        stationMatches = allStations
+          .filter((s) => Math.abs(s.price - target) <= 5)
+          .sort((a, b) => Math.abs(a.price - target) - Math.abs(b.price - target));
+      }
+    } else if (searchCategory === "pasa") {
+      pasaMatches = allPaSa.filter((p) =>
+        p.name.toLowerCase().includes(q.toLowerCase()) ||
+        p.highway.toLowerCase().includes(q.toLowerCase())
+      );
+    } else if (searchCategory === "region") {
+      // Try geocoding first for region searches
+      const geo = await geocodePlace(q);
+      if (geo) {
+        setFlyTo({ lat: geo.lat, lng: geo.lng, zoom: 13 });
+        setSearching(false);
+        return;
+      }
+    }
 
     const combined = [...stationMatches, ...pasaMatches];
     if (combined.length > 0) {
-      const first = combined[0];
-      setFlyTo({ lat: first.latitude, lng: first.longitude, zoom: 15 });
+      setFlyTo({ lat: combined[0].latitude, lng: combined[0].longitude, zoom: 15 });
       setSearchResults(combined.slice(0, 8));
       setSearching(false);
       return;
     }
 
+    // fallback geocode
     const geo = await geocodePlace(q);
     if (geo) {
       setFlyTo({ lat: geo.lat, lng: geo.lng, zoom: 14 });
@@ -91,7 +120,7 @@ export default function MapScreen({ stations, onLocationFound }: MapScreenProps)
       setSearchError("見つかりませんでした");
     }
     setSearching(false);
-  }, [searchQuery, allStations, allPaSa]);
+  }, [searchQuery, searchCategory, allStations, allPaSa]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSearch();
@@ -112,7 +141,19 @@ export default function MapScreen({ stations, onLocationFound }: MapScreenProps)
       }}>
         {/* Search open state */}
         {searchOpen ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "10px 12px" }}>
+            {/* Category selector */}
+            <div style={{ display: "flex", gap: 6 }}>
+              {SEARCH_CATS.map((c) => (
+                <button key={c.id} onClick={() => { setSearchCategory(c.id); setSearchResults([]); setSearchError(""); }} style={{
+                  padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+                  border: `1.5px solid ${searchCategory === c.id ? "#3b82f6" : "#2a2f42"}`,
+                  background: searchCategory === c.id ? "#3b82f622" : "#1a1d27",
+                  color: searchCategory === c.id ? "#3b82f6" : "#6b7280",
+                }}>{c.label}</button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <div style={{
               flex: 1, display: "flex", alignItems: "center", gap: 8,
               background: "#1e2235", border: "1.5px solid #3b82f6",
@@ -134,7 +175,7 @@ export default function MapScreen({ stations, onLocationFound }: MapScreenProps)
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="スタンド名・PA/SA名・エリアで検索"
+                placeholder={searchCategory === "price" ? "価格を入力（例: 165）" : searchCategory === "region" ? "エリア名・市区町村" : searchCategory === "pasa" ? "PA/SA名・高速道路名" : "スタンド名で検索"}
                 style={{
                   flex: 1, background: "transparent", border: "none", outline: "none",
                   color: "#f0f2f5", fontSize: 14, caretColor: "#3b82f6",
@@ -153,6 +194,7 @@ export default function MapScreen({ stations, onLocationFound }: MapScreenProps)
               style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", padding: "6px 4px" }}>
               キャンセル
             </button>
+            </div>
           </div>
         ) : (
           /* Filter tab bar */
@@ -258,6 +300,10 @@ export default function MapScreen({ stations, onLocationFound }: MapScreenProps)
           pasaSpots={filteredPaSa}
           onLocationFound={onLocationFound}
           flyTo={flyTo}
+          userLocation={userLocation}
+          isFavorite={isFavorite}
+          canAddFavorite={canAddFavorite}
+          onToggleFavorite={onToggleFavorite}
         />
       </div>
     </div>
