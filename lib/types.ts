@@ -7,6 +7,7 @@ export interface GasStation {
   price: number;
   latitude: number;
   longitude: number;
+  comment?: string;
   reported_at: string;
   created_at: string;
 }
@@ -17,16 +18,23 @@ export interface GasStationInput {
   price: number;
   latitude: number;
   longitude: number;
+  comment?: string;
 }
 
 export const FUEL_TYPE_LABELS: Record<FuelType, string> = {
-  regular: "Regular",
-  high_octane: "High Octane",
-  diesel: "Diesel",
+  regular: "レギュラー",
+  high_octane: "ハイオク",
+  diesel: "軽油",
 };
 
 export const FUEL_TYPE_COLORS: Record<FuelType, string> = {
-  regular: "#22c55e", // green
-  high_octane: "#eab308", // yellow
-  diesel: "#3b82f6", // blue
+  regular: "#22c55e",
+  high_octane: "#f59e0b",
+  diesel: "#3b82f6",
+};
+
+export const FUEL_TYPE_BG: Record<FuelType, string> = {
+  regular: "rgba(34,197,94,0.15)",
+  high_octane: "rgba(245,158,11,0.15)",
+  diesel: "rgba(59,130,246,0.15)",
 };

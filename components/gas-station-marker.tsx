@@ -2,77 +2,98 @@
 
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import type { GasStation, FuelType } from "@/lib/types";
-import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS } from "@/lib/types";
+import type { GasStation } from "@/lib/types";
+import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS, FUEL_TYPE_BG } from "@/lib/types";
 
-// Create custom colored markers for different fuel types
-function createFuelIcon(fuelType: FuelType) {
-  const color = FUEL_TYPE_COLORS[fuelType];
+function createFuelIcon(station: GasStation) {
+  const color = FUEL_TYPE_COLORS[station.fuel_type];
+  const label = FUEL_TYPE_LABELS[station.fuel_type];
 
   return L.divIcon({
     className: "custom-fuel-marker",
     html: `
-      <div style="
-        background: ${color};
-        width: 36px;
-        height: 36px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        <span style="
-          transform: rotate(45deg);
-          color: white;
-          font-weight: bold;
-          font-size: 11px;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="
+          background:#1a1d27;
+          border:2px solid ${color};
+          border-radius:10px;
+          padding:5px 9px;
+          box-shadow:0 2px 12px rgba(0,0,0,0.5);
+          min-width:64px;
+          text-align:center;
         ">
-          ${fuelType === "regular" ? "R" : fuelType === "high_octane" ? "H" : "D"}
-        </span>
+          <div style="font-size:14px;font-weight:700;color:${color};line-height:1.2;white-space:nowrap;">
+            ¥${Number(station.price).toFixed(0)}
+          </div>
+          <div style="font-size:9px;color:#9ca3af;margin-top:1px;white-space:nowrap;">
+            ${label}
+          </div>
+        </div>
+        <div style="
+          width:0;height:0;
+          border-left:5px solid transparent;
+          border-right:5px solid transparent;
+          border-top:6px solid ${color};
+        "></div>
       </div>
     `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -36],
+    iconSize: [70, 54],
+    iconAnchor: [35, 54],
+    popupAnchor: [0, -58],
   });
 }
 
-interface GasStationMarkerProps {
-  station: GasStation;
-}
+export default function GasStationMarker({ station }: { station: GasStation }) {
+  const color = FUEL_TYPE_COLORS[station.fuel_type];
+  const bg = FUEL_TYPE_BG[station.fuel_type];
+  const label = FUEL_TYPE_LABELS[station.fuel_type];
+  const icon = createFuelIcon(station);
 
-export default function GasStationMarker({ station }: GasStationMarkerProps) {
-  const icon = createFuelIcon(station.fuel_type);
+  const reportedDate = new Date(station.reported_at).toLocaleDateString("ja-JP", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <Marker position={[station.latitude, station.longitude]} icon={icon}>
       <Popup>
-        <div className="min-w-48 p-1">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-bold text-base text-foreground leading-tight">
-              {station.station_name}
-            </h3>
-            <span
-              className="text-lg font-bold whitespace-nowrap"
-              style={{ color: FUEL_TYPE_COLORS[station.fuel_type] }}
-            >
-              ${station.price.toFixed(2)}
-            </span>
+        <div style={{ minWidth: "190px" }}>
+          <div style={{ fontWeight: 700, fontSize: "15px", color: "#f0f2f5", marginBottom: "8px", lineHeight: 1.3 }}>
+            {station.station_name}
           </div>
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
-              style={{ backgroundColor: FUEL_TYPE_COLORS[station.fuel_type] }}
-            >
-              {FUEL_TYPE_LABELS[station.fuel_type]}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+            <span style={{
+              background: bg,
+              color,
+              padding: "2px 8px",
+              borderRadius: "20px",
+              fontSize: "11px",
+              fontWeight: 600,
+              border: `1px solid ${color}44`,
+            }}>
+              {label}
             </span>
-            <span className="text-xs text-muted-foreground">
-              {new Date(station.reported_at).toLocaleDateString()}
+            <span style={{ fontSize: "22px", fontWeight: 700, color }}>
+              ¥{Number(station.price).toFixed(0)}
             </span>
+            <span style={{ fontSize: "12px", color: "#6b7280" }}>/L</span>
+          </div>
+          {station.comment && (
+            <div style={{
+              fontSize: "12px",
+              color: "#9ca3af",
+              background: "#22263a",
+              padding: "6px 8px",
+              borderRadius: "6px",
+              marginBottom: "6px",
+            }}>
+              {station.comment}
+            </div>
+          )}
+          <div style={{ fontSize: "11px", color: "#6b7280" }}>
+            {reportedDate} 更新
           </div>
         </div>
       </Popup>

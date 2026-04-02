@@ -1,9 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 
+const notoSansJP = Noto_Sans_JP({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Driver's View - Interactive Map",
-  description: "An interactive map application for drivers to view and navigate locations",
+  title: "ドライバーズビュー - ガソリン価格マップ",
+  description: "近くのガソリンスタンドの価格をリアルタイムで確認・投稿できるアプリ",
 };
 
 export const viewport: Viewport = {
@@ -11,17 +18,17 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#2563eb",
+  themeColor: "#0f1117",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body className="antialiased">{children}</body>
+    <html lang="ja" className={notoSansJP.className}>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }
