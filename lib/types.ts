@@ -5,6 +5,10 @@ export interface GasStation {
   station_name: string;
   fuel_type: FuelType;
   price: number;
+  /** Regular (non-member) price — may differ from member price */
+  price_regular?: number | null;
+  /** Member / card price */
+  price_member?: number | null;
   latitude: number;
   longitude: number;
   comment?: string | null;

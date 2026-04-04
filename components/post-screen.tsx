@@ -14,11 +14,11 @@ const fetcher = async (url: string) => {
 };
 
 const CAR_CATEGORIES = [
-  { id: "car_life",    label: "カーライフ",   color: "#a78bfa" },
-  { id: "maintenance", label: "メンテナンス",  color: "#f59e0b" },
-  { id: "driving",     label: "ドライブ",      color: "#22c55e" },
-  { id: "question",    label: "質問",           color: "#3b82f6" },
-  { id: "custom",      label: "カスタム",       color: "#f472b6" },
+  { id: "car_life",    label: "カーライフ",  color: "#a78bfa" },
+  { id: "maintenance", label: "メンテ",      color: "#f59e0b" },
+  { id: "driving",     label: "ドライブ",    color: "#22c55e" },
+  { id: "question",    label: "質問",        color: "#3b82f6" },
+  { id: "custom",      label: "カスタム",    color: "#f472b6" },
 ];
 
 function timeAgo(dateStr: string): string {
@@ -43,9 +43,9 @@ function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   );
 }
 
-// ── Inline comment section ────────────────────────────────────────────────────
+// ── Comment section — gated behind login ─────────────────────────────────────
 
-function CommentSection({ postId }: { postId: string }) {
+function CommentSection({ postId, isLoggedIn }: { postId: string; isLoggedIn: boolean }) {
   const [open, setOpen]     = useState(false);
   const [text, setText]     = useState("");
   const [comments, setComments] = useState<{ id: string; author: string; text: string; at: string }[]>([]);
@@ -83,119 +83,183 @@ function CommentSection({ postId }: { postId: string }) {
               </div>
             </div>
           ))}
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              placeholder="コメントを追加..."
-              style={{
-                flex: 1, background: "#22263a", border: "1px solid #2a2f42", borderRadius: 10,
-                padding: "8px 12px", fontSize: 13, color: "#f0f2f5", outline: "none",
-              }}
-            />
-            <button onClick={handleAdd} style={{
-              background: "#22c55e", border: "none", borderRadius: 8,
-              padding: "8px 12px", color: "#0f1117", fontWeight: 700, fontSize: 12, cursor: "pointer",
-            }}>
-              送信
-            </button>
-          </div>
+
+          {isLoggedIn ? (
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                placeholder="コメントを追加..."
+                style={{
+                  flex: 1, background: "#22263a", border: "1px solid #2a2f42", borderRadius: 10,
+                  padding: "8px 12px", fontSize: 13, color: "#f0f2f5", outline: "none",
+                }}
+              />
+              <button onClick={handleAdd} style={{
+                background: "#22c55e", border: "none", borderRadius: 8,
+                padding: "8px 12px", color: "#0f1117", fontWeight: 700, fontSize: 12, cursor: "pointer",
+              }}>送信</button>
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: "#6b7280", padding: "6px 8px", background: "#12151f", borderRadius: 8, textAlign: "center" }}>
+              コメントするにはログインが必要です
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
+// ── Price display — member + regular ─────────────────────────────────────────
+
+function PriceDisplay({ post, color }: { post: any; color: string }) {
+  const hasMember  = post.price_member  != null;
+  const hasRegular = post.price_regular != null;
+
+  if (hasMember || hasRegular) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end", flexShrink: 0 }}>
+        {hasMember && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+            <span style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1 }}>¥{Number(post.price_member).toFixed(0)}</span>
+            <span style={{ fontSize: 10, color: "#9ca3af" }}>会員</span>
+          </div>
+        )}
+        {hasRegular && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+            <span style={{ fontSize: hasMember ? 15 : 20, fontWeight: hasMember ? 600 : 800, color: hasMember ? "#9ca3af" : color, lineHeight: 1, textDecoration: hasMember ? "line-through" : "none" }}>
+              ¥{Number(post.price_regular).toFixed(0)}
+            </span>
+            <span style={{ fontSize: 10, color: "#6b7280" }}>一般</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!post.price) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 3, flexShrink: 0 }}>
+      <span style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1 }}>¥{Number(post.price).toFixed(0)}</span>
+      <span style={{ fontSize: 11, color: "#9ca3af" }}>/L</span>
+    </div>
+  );
+}
+
 // ── Post cards ────────────────────────────────────────────────────────────────
 
-function GasPricePostCard({ post }: { post: any }) {
+function GasPricePostCard({ post, isLoggedIn }: { post: any; isLoggedIn: boolean }) {
   const [liked, setLiked] = useState(false);
-  const color = FUEL_TYPE_COLORS[post.fuel_type as FuelType] ?? "#22c55e";
-  const bg    = FUEL_TYPE_BG[post.fuel_type as FuelType]     ?? "rgba(34,197,94,0.15)";
+  const color = FUEL_TYPE_COLORS[post.fuel_type as FuelType] ?? "#ef4444";
+  const bg    = FUEL_TYPE_BG[post.fuel_type as FuelType]     ?? "rgba(239,68,68,0.12)";
   const label = FUEL_TYPE_LABELS[post.fuel_type as FuelType] ?? "";
 
   return (
-    <div style={{ background: "#1a1d27", borderRadius: 16, border: "1px solid #2a2f42", padding: "16px 16px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{
+      background: "#141720",
+      borderRadius: 16,
+      border: "1px solid #1e2235",
+      // Left accent bar in fuel-type color
+      borderLeft: `4px solid ${color}`,
+      padding: "14px 14px 12px 14px",
+      display: "flex", flexDirection: "column", gap: 10,
+    }}>
+      {/* Header row */}
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
         <Avatar name={post.author_name} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 700, fontSize: 14, color: "#f0f2f5" }}>{post.author_name}</span>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>{timeAgo(post.created_at)}</span>
+            <span style={{ fontSize: 11, color: "#4b5563" }}>{timeAgo(post.created_at)}</span>
           </div>
           {post.station_name && (
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{post.station_name}</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, display: "inline-block", flexShrink: 0 }} />
+              {post.station_name}
+            </div>
           )}
         </div>
-        {post.price && (
-          <div style={{ background: bg, border: `1.5px solid ${color}`, borderRadius: 12, padding: "6px 12px", textAlign: "center", flexShrink: 0 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1 }}>¥{Number(post.price).toFixed(0)}</div>
-            <div style={{ fontSize: 9, color: "#9ca3af", marginTop: 2 }}>{label} /L</div>
-          </div>
-        )}
+        {/* Price badge */}
+        <div style={{ background: bg, border: `1px solid ${color}55`, borderRadius: 12, padding: "8px 12px", textAlign: "right" }}>
+          <PriceDisplay post={post} color={color} />
+          <div style={{ fontSize: 9, color: "#6b7280", marginTop: 3 }}>{label}</div>
+        </div>
       </div>
 
-      <p style={{ fontSize: 14, color: "#d1d5db", lineHeight: 1.6, margin: 0 }}>{post.content}</p>
+      {/* Content */}
+      {post.content && <p style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.6, margin: 0 }}>{post.content}</p>}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6, paddingTop: 6, borderTop: "1px solid #1e2235" }}>
-        <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, background: "rgba(34,197,94,0.12)", color: "#22c55e" }}>
+      {/* Footer */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 6, borderTop: "1px solid #1e2235" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: `${color}18`, color }}>
           価格情報
         </span>
         <div style={{ flex: 1 }} />
         <button onClick={() => setLiked(!liked)} style={{
           display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
-          cursor: "pointer", color: liked ? "#f87171" : "#6b7280", fontSize: 12, padding: "4px 6px",
+          cursor: "pointer", color: liked ? "#f87171" : "#4b5563", fontSize: 12, padding: "4px 6px",
         }}>
-          <svg viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15 }}>
+          <svg viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
           {post.likes + (liked ? 1 : 0)}
         </button>
       </div>
 
-      <CommentSection postId={post.id} />
+      <CommentSection postId={post.id} isLoggedIn={isLoggedIn} />
     </div>
   );
 }
 
-function CarPostCard({ post }: { post: any }) {
+function CarPostCard({ post, isLoggedIn }: { post: any; isLoggedIn: boolean }) {
   const [liked, setLiked] = useState(false);
   const cat = CAR_CATEGORIES.find((c) => c.id === post.car_category);
   const catColor = cat?.color ?? "#9ca3af";
   const catLabel = cat?.label ?? post.car_category;
 
   return (
-    <div style={{ background: "#1a1d27", borderRadius: 16, border: "1px solid #2a2f42", padding: "16px 16px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{
+      // Neutral dark slate — distinct from price cards
+      background: "#111827",
+      borderRadius: 16,
+      border: "1px solid #1f2937",
+      borderLeft: `4px solid ${catColor}`,
+      padding: "14px 14px 12px 14px",
+      display: "flex", flexDirection: "column", gap: 10,
+    }}>
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
         <Avatar name={post.author_name} />
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 700, fontSize: 14, color: "#f0f2f5" }}>{post.author_name}</span>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>{timeAgo(post.created_at)}</span>
+            <span style={{ fontSize: 11, color: "#4b5563" }}>{timeAgo(post.created_at)}</span>
+          </div>
+          <div style={{ marginTop: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: `${catColor}22`, color: catColor, border: `1px solid ${catColor}44` }}>
+              {catLabel}
+            </span>
           </div>
         </div>
       </div>
 
-      <p style={{ fontSize: 14, color: "#d1d5db", lineHeight: 1.6, margin: 0 }}>{post.content}</p>
+      <p style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.6, margin: 0 }}>{post.content}</p>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6, paddingTop: 6, borderTop: "1px solid #1e2235" }}>
-        <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, background: `${catColor}22`, color: catColor }}>
-          {catLabel}
-        </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 6, borderTop: "1px solid #1f2937" }}>
         <div style={{ flex: 1 }} />
         <button onClick={() => setLiked(!liked)} style={{
           display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
-          cursor: "pointer", color: liked ? "#f87171" : "#6b7280", fontSize: 12, padding: "4px 6px",
+          cursor: "pointer", color: liked ? "#f87171" : "#4b5563", fontSize: 12, padding: "4px 6px",
         }}>
-          <svg viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15 }}>
+          <svg viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
           {post.likes + (liked ? 1 : 0)}
         </button>
       </div>
 
-      <CommentSection postId={post.id} />
+      <CommentSection postId={post.id} isLoggedIn={isLoggedIn} />
     </div>
   );
 }
@@ -203,9 +267,7 @@ function CarPostCard({ post }: { post: any }) {
 // ── Nearby station picker ─────────────────────────────────────────────────────
 
 function StationPicker({
-  stations,
-  selected,
-  onSelect,
+  stations, selected, onSelect,
 }: {
   stations: GasStation[];
   selected: GasStation | null;
@@ -226,20 +288,11 @@ function StationPicker({
       >
         {selected ? (
           <>
-            <span style={{
-              width: 8, height: 8, borderRadius: "50%",
-              background: FUEL_TYPE_COLORS[selected.fuel_type], flexShrink: 0,
-            }} />
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: FUEL_TYPE_COLORS[selected.fuel_type], flexShrink: 0 }} />
             <span style={{ flex: 1, fontSize: 14, color: "#f0f2f5", fontWeight: 600 }}>{selected.station_name}</span>
-            <span style={{ fontSize: 12, color: FUEL_TYPE_COLORS[selected.fuel_type] }}>
-              ¥{selected.price}
-            </span>
-            <button type="button" onClick={(e) => { e.stopPropagation(); onSelect(null); }} style={{
-              background: "none", border: "none", color: "#6b7280", cursor: "pointer", padding: 0,
-            }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}>
-                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round"/>
-              </svg>
+            <span style={{ fontSize: 12, color: FUEL_TYPE_COLORS[selected.fuel_type], fontWeight: 700 }}>¥{selected.price}</span>
+            <button type="button" onClick={(e) => { e.stopPropagation(); onSelect(null); }} style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", padding: 0 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}><path d="M18 6L6 18M6 6l12 12" strokeLinecap="round"/></svg>
             </button>
           </>
         ) : (
@@ -260,20 +313,16 @@ function StationPicker({
         <div style={{
           position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 50,
           background: "#22263a", border: "1px solid #2a2f42", borderRadius: 12,
-          maxHeight: 220, overflowY: "auto",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          maxHeight: 220, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
         }}>
           {stations.length === 0 && (
-            <div style={{ padding: "14px 16px", color: "#6b7280", fontSize: 13 }}>
-              近くのスタンドが見つかりません
-            </div>
+            <div style={{ padding: "14px 16px", color: "#6b7280", fontSize: 13 }}>近くのスタンドが見つかりません</div>
           )}
           {stations.map((s) => {
             const color = FUEL_TYPE_COLORS[s.fuel_type];
             return (
               <button
-                key={s.id}
-                type="button"
+                key={s.id} type="button"
                 onClick={() => { onSelect(s); setOpen(false); }}
                 style={{
                   width: "100%", display: "flex", alignItems: "center", gap: 10,
@@ -299,40 +348,34 @@ function StationPicker({
 const DUPE_KEY = "dv_last_post";
 
 function GasPricePostModal({
-  onClose,
-  onSubmitted,
-  nearbyStations,
+  onClose, onSubmitted, nearbyStations,
 }: {
   onClose: () => void;
   onSubmitted: () => void;
   nearbyStations: GasStation[];
 }) {
   const [selectedStation, setSelectedStation] = useState<GasStation | null>(null);
-  const [fuelType, setFuelType]   = useState<FuelType>("regular");
-  const [price, setPrice]         = useState("");
-  const [content, setContent]     = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError]         = useState("");
-  const [dupeWarning, setDupeWarning] = useState("");
+  const [fuelType, setFuelType]         = useState<FuelType>("regular");
+  const [priceMember, setPriceMember]   = useState("");
+  const [priceRegular, setPriceRegular] = useState("");
+  const [content, setContent]           = useState("");
+  const [submitting, setSubmitting]     = useState(false);
+  const [error, setError]               = useState("");
+  const [dupeWarning, setDupeWarning]   = useState("");
 
   const fuelTypes: FuelType[] = ["regular", "high_octane", "diesel", "ev_charging"];
 
-  // Check 12h duplicate protection
   const checkDupe = useCallback((stationId: string) => {
     try {
-      const raw = localStorage.getItem(DUPE_KEY);
-      if (!raw) return false;
-      const map: Record<string, number> = JSON.parse(raw);
+      const map: Record<string, number> = JSON.parse(localStorage.getItem(DUPE_KEY) ?? "{}");
       const last = map[stationId];
-      if (!last) return false;
-      return Date.now() - last < 12 * 60 * 60 * 1000;
+      return !!last && Date.now() - last < 12 * 60 * 60 * 1000;
     } catch { return false; }
   }, []);
 
   const recordPost = useCallback((stationId: string) => {
     try {
-      const raw = localStorage.getItem(DUPE_KEY) ?? "{}";
-      const map: Record<string, number> = JSON.parse(raw);
+      const map: Record<string, number> = JSON.parse(localStorage.getItem(DUPE_KEY) ?? "{}");
       map[stationId] = Date.now();
       localStorage.setItem(DUPE_KEY, JSON.stringify(map));
     } catch {}
@@ -343,32 +386,31 @@ function GasPricePostModal({
     setDupeWarning("");
     if (s) {
       setFuelType(s.fuel_type);
-      setPrice(String(s.price));
-      if (checkDupe(s.id)) {
-        setDupeWarning("このガソリンスタンドは直近12時間以内に投稿があります");
-      }
+      setPriceRegular(String(s.price));
+      if (checkDupe(s.id)) setDupeWarning("このスタンドは直近12時間以内に投稿があります");
     }
   };
 
   const handleSubmit = async () => {
     if (!content.trim()) { setError("投稿内容を入力してください"); return; }
     if (selectedStation && checkDupe(selectedStation.id)) {
-      setError("このガソリンスタンドは直近12時間以内に投稿があります");
-      return;
+      setError("このスタンドは直近12時間以内に投稿があります"); return;
     }
-    setSubmitting(true);
-    setError("");
+    setSubmitting(true); setError("");
     try {
+      const priceVal = priceMember || priceRegular;
       const res = await fetch("/api/community-posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          post_type: "gas_price",
-          content: content.trim(),
-          fuel_type: fuelType,
-          price: price ? parseFloat(price) : null,
+          post_type:    "gas_price",
+          content:      content.trim(),
+          fuel_type:    fuelType,
+          price:        priceVal ? parseFloat(priceVal) : null,
+          price_member: priceMember  ? parseFloat(priceMember)  : null,
+          price_regular:priceRegular ? parseFloat(priceRegular) : null,
           station_name: selectedStation?.station_name ?? "",
-          station_id: selectedStation?.id ?? null,
+          station_id:   selectedStation?.id ?? null,
         }),
       });
       if (!res.ok) throw new Error("failed");
@@ -381,6 +423,8 @@ function GasPricePostModal({
     }
   };
 
+  const color = FUEL_TYPE_COLORS[fuelType];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
@@ -390,47 +434,66 @@ function GasPricePostModal({
         </button>
       </div>
 
-      {/* Nearby station picker */}
+      {/* Station picker */}
       <div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, fontWeight: 600 }}>スタンドを選択（近く）</div>
         <StationPicker stations={nearbyStations} selected={selectedStation} onSelect={handleStationSelect} />
         {dupeWarning && (
           <div style={{ marginTop: 6, fontSize: 12, color: "#f59e0b", display: "flex", alignItems: "center", gap: 5 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="12" y1="9" x2="12" y2="13" strokeLinecap="round"/>
-              <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round"/>
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
             {dupeWarning}
           </div>
         )}
       </div>
 
-      {/* Fuel type selector */}
-      <div style={{ display: "flex", gap: 6 }}>
-        {fuelTypes.map((ft) => {
-          const active = fuelType === ft;
-          const color  = FUEL_TYPE_COLORS[ft];
-          return (
-            <button key={ft} type="button" onClick={() => setFuelType(ft)} style={{
-              flex: 1, padding: "9px 4px", borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: "pointer",
-              border: `2px solid ${active ? color : "#2a2f42"}`,
-              background: active ? `${color}22` : "#22263a",
-              color: active ? color : "#6b7280",
-            }}>{FUEL_TYPE_LABELS[ft]}</button>
-          );
-        })}
+      {/* Fuel type — color-coded buttons */}
+      <div>
+        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, fontWeight: 600 }}>燃料タイプ</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {fuelTypes.map((ft) => {
+            const active = fuelType === ft;
+            const c = FUEL_TYPE_COLORS[ft];
+            return (
+              <button key={ft} type="button" onClick={() => setFuelType(ft)} style={{
+                flex: 1, padding: "9px 4px", borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: "pointer",
+                border: `2px solid ${active ? c : "#2a2f42"}`,
+                background: active ? `${c}22` : "#22263a",
+                color: active ? c : "#6b7280",
+              }}>{FUEL_TYPE_LABELS[ft]}</button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Price */}
-      <div style={{ position: "relative" }}>
-        <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#6b7280", fontWeight: 700, fontSize: 16 }}>¥</span>
-        <input
-          type="number" inputMode="numeric"
-          value={price} onChange={(e) => setPrice(e.target.value)}
-          placeholder="価格 /L"
-          style={{ background: "#22263a", border: "1px solid #2a2f42", borderRadius: 10, padding: "11px 14px 11px 30px", fontSize: 14, color: "#f0f2f5", outline: "none", width: "100%", boxSizing: "border-box" }}
-        />
+      {/* Member + Regular price inputs */}
+      <div>
+        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, fontWeight: 600 }}>価格</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {/* Member price */}
+          <div style={{ flex: 1, position: "relative" }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#6b7280", fontWeight: 700, fontSize: 14 }}>¥</span>
+            <input
+              type="number" inputMode="numeric"
+              value={priceMember} onChange={(e) => setPriceMember(e.target.value)}
+              placeholder="会員価格"
+              style={{ background: "#22263a", border: `1.5px solid ${priceMember ? color + "88" : "#2a2f42"}`, borderRadius: 10, padding: "10px 10px 10px 26px", fontSize: 13, color: "#f0f2f5", outline: "none", width: "100%", boxSizing: "border-box" }}
+            />
+            <div style={{ fontSize: 10, color: "#6b7280", marginTop: 3, textAlign: "center" }}>会員 / カード</div>
+          </div>
+          {/* Regular price */}
+          <div style={{ flex: 1, position: "relative" }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#6b7280", fontWeight: 700, fontSize: 14 }}>¥</span>
+            <input
+              type="number" inputMode="numeric"
+              value={priceRegular} onChange={(e) => setPriceRegular(e.target.value)}
+              placeholder="一般価格"
+              style={{ background: "#22263a", border: `1.5px solid ${priceRegular ? "#9ca3af88" : "#2a2f42"}`, borderRadius: 10, padding: "10px 10px 10px 26px", fontSize: 13, color: "#f0f2f5", outline: "none", width: "100%", boxSizing: "border-box" }}
+            />
+            <div style={{ fontSize: 10, color: "#6b7280", marginTop: 3, textAlign: "center" }}>一般</div>
+          </div>
+        </div>
       </div>
 
       {/* Content */}
@@ -445,7 +508,7 @@ function GasPricePostModal({
 
       <button onClick={handleSubmit} disabled={submitting} style={{
         padding: "14px", borderRadius: 12,
-        background: submitting ? "#166534" : "#22c55e",
+        background: submitting ? "#166534" : color,
         color: submitting ? "#4ade80" : "#0f1117",
         fontWeight: 700, fontSize: 15, border: "none", cursor: submitting ? "not-allowed" : "pointer",
       }}>
@@ -465,8 +528,7 @@ function CarPostModal({ onClose, onSubmitted }: { onClose: () => void; onSubmitt
 
   const handleSubmit = async () => {
     if (!content.trim()) { setError("投稿内容を入力してください"); return; }
-    setSubmitting(true);
-    setError("");
+    setSubmitting(true); setError("");
     try {
       const res = await fetch("/api/community-posts", {
         method: "POST",
@@ -528,8 +590,9 @@ function CarPostModal({ onClose, onSubmitted }: { onClose: () => void; onSubmitt
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-type ModalType = "none" | "choose" | "gas" | "car";
+type ModalType  = "none" | "choose" | "gas" | "car";
 type FeedFilter = "all" | "gas_price" | "car";
+type SortMode   = "newest" | "most_liked" | "most_viewed";
 type SearchCategory = "station" | "author" | "pasa";
 
 interface PostScreenProps {
@@ -538,15 +601,16 @@ interface PostScreenProps {
 }
 
 export default function PostScreen({ userLocation: _userLocation, nearbyStations = [] }: PostScreenProps) {
-  const [modal, setModal]         = useState<ModalType>("none");
-  const [feedFilter, setFeedFilter] = useState<FeedFilter>("all");
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [modal, setModal]               = useState<ModalType>("none");
+  const [feedFilter, setFeedFilter]     = useState<FeedFilter>("all");
+  const [sortMode, setSortMode]         = useState<SortMode>("newest");
+  const [searchOpen, setSearchOpen]     = useState(false);
   const [searchCategory, setSearchCategory] = useState<SearchCategory>("station");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery]   = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
   const { data, mutate } = useSWR("/api/community-posts", fetcher, { refreshInterval: 30000 });
-  const posts: any[] = data?.posts || [];
+  const posts: any[]        = data?.posts     || [];
   const isLoggedIn: boolean = data?.isLoggedIn || false;
 
   const handleSubmitted = async () => { setModal("none"); await mutate(); };
@@ -557,6 +621,12 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
     { id: "car",       label: "クルマ" },
   ];
 
+  const SORT_OPTIONS: { id: SortMode; label: string }[] = [
+    { id: "newest",      label: "新着" },
+    { id: "most_liked",  label: "いいね" },
+    { id: "most_viewed", label: "閲覧数" },
+  ];
+
   const SEARCH_CATS: { id: SearchCategory; label: string }[] = [
     { id: "station", label: "スタンド名" },
     { id: "author",  label: "投稿者名" },
@@ -564,20 +634,38 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
   ];
 
   const visiblePosts = useMemo(() => {
-    let base = feedFilter === "all" ? posts : posts.filter((p: any) => p.post_type === feedFilter);
-    if (!searchQuery.trim()) return base;
-    const q = searchQuery.toLowerCase();
-    if (searchCategory === "station") base = base.filter((p: any) => p.station_name?.toLowerCase().includes(q));
-    if (searchCategory === "author")  base = base.filter((p: any) => p.author_name?.toLowerCase().includes(q));
-    if (searchCategory === "pasa")    base = base.filter((p: any) => p.station_name?.toLowerCase().includes("pa") || p.station_name?.toLowerCase().includes("sa") || p.content?.toLowerCase().includes(q));
+    // Guest restrictions: hide car posts from non-logged-in users
+    let base = posts.filter((p: any) => {
+      if (p.post_type === "car" && !isLoggedIn) return false;
+      if (feedFilter !== "all" && p.post_type !== feedFilter) return false;
+      return true;
+    });
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      if (searchCategory === "station") base = base.filter((p: any) => p.station_name?.toLowerCase().includes(q));
+      else if (searchCategory === "author") base = base.filter((p: any) => p.author_name?.toLowerCase().includes(q));
+      else if (searchCategory === "pasa") {
+        // Guest cannot search PA/SA
+        if (!isLoggedIn) base = [];
+        else base = base.filter((p: any) => p.station_name?.toLowerCase().includes(q) || p.content?.toLowerCase().includes(q));
+      }
+    }
+
+    // Sort
+    if (sortMode === "most_liked")  base = [...base].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+    else if (sortMode === "most_viewed") base = [...base].sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+    else base = [...base].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
     return base;
-  }, [posts, feedFilter, searchQuery, searchCategory]);
+  }, [posts, feedFilter, searchQuery, searchCategory, sortMode, isLoggedIn]);
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "#0f1117", position: "relative" }}>
       {/* Header */}
       <div style={{ padding: "18px 16px 0", background: "#0f1117", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f0f2f5", margin: 0, flex: 1 }}>投稿</h1>
           <button onClick={() => { setSearchOpen(!searchOpen); }} style={{
             width: 36, height: 36, borderRadius: 9, background: "#1e2235",
@@ -592,7 +680,7 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
 
         {/* Search panel */}
         {searchOpen && (
-          <div style={{ marginBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ marginBottom: 10, display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", gap: 6 }}>
               {SEARCH_CATS.map((c) => (
                 <button key={c.id} onClick={() => setSearchCategory(c.id)} style={{
@@ -600,7 +688,7 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
                   border: `1.5px solid ${searchCategory === c.id ? "#22c55e" : "#2a2f42"}`,
                   background: searchCategory === c.id ? "#22c55e22" : "#1a1d27",
                   color: searchCategory === c.id ? "#22c55e" : "#6b7280",
-                }}>{c.label}</button>
+                }}>{c.label}{c.id === "pasa" && !isLoggedIn ? " (要ログイン)" : ""}</button>
               ))}
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center", background: "#1e2235", border: "1.5px solid #2a2f42", borderRadius: 10, padding: "8px 12px" }}>
@@ -634,15 +722,31 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
                 flex: 1, padding: "10px 4px", background: "none", border: "none",
                 borderBottom: `2px solid ${active ? "#22c55e" : "transparent"}`,
                 color: active ? "#22c55e" : "#6b7280",
-                fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.15s",
+                fontSize: 13, fontWeight: 700, cursor: "pointer",
               }}>{f.label}</button>
+            );
+          })}
+        </div>
+
+        {/* Sort row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 0 4px" }}>
+          <span style={{ fontSize: 11, color: "#4b5563", fontWeight: 600, marginRight: 2 }}>並び替え:</span>
+          {SORT_OPTIONS.map((s) => {
+            const active = sortMode === s.id;
+            return (
+              <button key={s.id} onClick={() => setSortMode(s.id)} style={{
+                padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, cursor: "pointer",
+                border: `1.5px solid ${active ? "#22c55e" : "#1e2235"}`,
+                background: active ? "#22c55e22" : "transparent",
+                color: active ? "#22c55e" : "#4b5563",
+              }}>{s.label}</button>
             );
           })}
         </div>
       </div>
 
       {/* Feed */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
         {visiblePosts.length === 0 && (
           <div style={{ textAlign: "center", color: "#6b7280", padding: "40px 0", fontSize: 14 }}>
             {searchQuery ? "検索結果なし" : "投稿がありません"}
@@ -651,14 +755,15 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
 
         {visiblePosts.map((post: any) =>
           post.post_type === "gas_price" ? (
-            <GasPricePostCard key={post.id} post={post} />
+            <GasPricePostCard key={post.id} post={post} isLoggedIn={isLoggedIn} />
           ) : (
-            <CarPostCard key={post.id} post={post} />
+            <CarPostCard key={post.id} post={post} isLoggedIn={isLoggedIn} />
           )
         )}
 
-        {!isLoggedIn && feedFilter !== "gas_price" && (
-          <div style={{ background: "#1a1d27", border: "1px dashed #2a2f42", borderRadius: 16, padding: "28px 20px", textAlign: "center" }}>
+        {/* Guest gate for car posts */}
+        {!isLoggedIn && (feedFilter === "all" || feedFilter === "car") && (
+          <div style={{ background: "#111827", border: "1px dashed #1f2937", borderRadius: 16, padding: "28px 20px", textAlign: "center" }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.5" style={{ width: 40, height: 40, margin: "0 auto 8px" }}>
               <rect x="3" y="11" width="18" height="11" rx="2"/>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -710,19 +815,19 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
               </svg>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "#22c55e" }}>価格情報</div>
-                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>ガソリン価格を共有</div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>ゲストでも投稿可</div>
               </div>
             </button>
             <button
-              onClick={() => isLoggedIn ? setModal("car") : null}
-              style={{ flex: 1, padding: "20px 12px", borderRadius: 16, background: isLoggedIn ? "rgba(167,139,250,0.1)" : "#22263a", border: `2px solid ${isLoggedIn ? "rgba(167,139,250,0.4)" : "#2a2f42"}`, cursor: isLoggedIn ? "pointer" : "not-allowed", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, opacity: isLoggedIn ? 1 : 0.6 }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke={isLoggedIn ? "#a78bfa" : "#6b7280"} strokeWidth="2" style={{ width: 32, height: 32 }}>
+              onClick={() => isLoggedIn ? setModal("car") : undefined}
+              style={{ flex: 1, padding: "20px 12px", borderRadius: 16, background: isLoggedIn ? "rgba(167,139,250,0.1)" : "#12151f", border: `2px solid ${isLoggedIn ? "rgba(167,139,250,0.4)" : "#2a2f42"}`, cursor: isLoggedIn ? "pointer" : "not-allowed", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, opacity: isLoggedIn ? 1 : 0.55 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke={isLoggedIn ? "#a78bfa" : "#4b5563"} strokeWidth="2" style={{ width: 32, height: 32 }}>
                 <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/>
                 <rect x="9" y="11" width="14" height="10" rx="2"/>
                 <path d="M12 14h5"/><path d="M12 17h3"/>
               </svg>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: isLoggedIn ? "#a78bfa" : "#6b7280" }}>クルマ投稿</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: isLoggedIn ? "#a78bfa" : "#4b5563" }}>クルマ投稿</div>
                 <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{isLoggedIn ? "車の話題を共有" : "ログインが必要"}</div>
               </div>
             </button>
