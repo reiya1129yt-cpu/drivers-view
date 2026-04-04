@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import useSWR from "swr";
+import useSWR, { SWRConfig } from "swr";
 import BottomNav from "@/components/bottom-nav";
 import MapScreen from "@/components/map-screen";
 import PostScreen from "@/components/post-screen";
@@ -23,7 +23,7 @@ export default function AppShell() {
   const [activeTab, setActiveTab]       = useState<Tab>("map");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  const { data: dbStations } = useSWR<GasStation[]>("/api/gas-stations", fetcher, { refreshInterval: 30000 });
+  const { data: dbStations } = useSWR<GasStation[]>("/api/gas-stations", fetcher, { refreshInterval: 60000 });
 
   const stations: GasStation[] = useMemo(() => {
     if (dbStations && dbStations.length > 0) return dbStations;
@@ -38,6 +38,17 @@ export default function AppShell() {
   }, []);
 
   return (
+    <SWRConfig value={{
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 10000,
+      onErrorRetry: (error, _key, _config, revalidate, { retryCount }) => {
+        // Never retry on 404 or 5xx; back off exponentially up to 3 attempts
+        if (error?.status === 404) return;
+        if (retryCount >= 3) return;
+        setTimeout(() => revalidate({ retryCount }), Math.min(1000 * 2 ** retryCount, 30000));
+      },
+    }}>
     <main style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "#0f1117", overflow: "hidden" }}>
       {/* Price-change alert banners */}
       {alerts.length > 0 && (
@@ -104,5 +115,6 @@ export default function AppShell() {
 
       <BottomNav activeTab={activeTab} onTabChange={useCallback((tab: Tab) => setActiveTab(tab), [])} />
     </main>
+    </SWRConfig>
   );
 }
