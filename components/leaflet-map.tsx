@@ -136,6 +136,12 @@ function renderStationMarkers(
           <span style="font-size:12px;color:#6b7280;">${unit}</span>
         </div>
         ${station.comment ? `<div style="font-size:12px;color:#9ca3af;background:#1a1d2a;padding:6px 8px;border-radius:8px;margin-bottom:6px;">&ldquo;${station.comment}&rdquo;</div>` : ""}
+        <!-- Facility row: opening hours + car wash -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          ${station.opening_hours ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#9ca3af;"><svg viewBox='0 0 24 24' width='11' height='11' fill='none' stroke='#6b7280' stroke-width='2'><circle cx='12' cy='12' r='10'/><polyline points='12 6 12 12 16 14'/></svg>${station.opening_hours}</span>` : ""}
+          ${station.has_car_wash === true  ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;background:#0ea5e922;color:#38bdf8;border:1px solid #0ea5e944;border-radius:999px;padding:2px 8px;"><svg viewBox='0 0 24 24' width='11' height='11' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 12h16M4 12c0-4 8-8 8-8M4 12c0 4 8 8 8 8M20 12c0-4-8-8-8-8M20 12c0 4-8 8-8 8' stroke-linecap='round'/></svg>洗車機あり</span>` : ""}
+          ${station.has_car_wash === false ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#4b5563;">洗車機なし</span>` : ""}
+        </div>
         <div style="font-size:11px;color:#4b5563;margin-bottom:4px;">${dt} 更新</div>
         <button data-station-id="${station.id}" style="${favBtnStyle}">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="${isFav ? "#f59e0b" : "none"}" stroke="${isFav ? "#f59e0b" : "currentColor"}" stroke-width="2">

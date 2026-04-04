@@ -16,6 +16,13 @@ export interface GasStation {
   created_at: string;
   /** true when a user has submitted a price report for this station */
   has_user_price?: boolean;
+  /** Whether the station has a car wash */
+  has_car_wash?: boolean | null;
+  /**
+   * Opening hours string, e.g. "24時間営業" or "7:00 - 22:00".
+   * Null when unknown.
+   */
+  opening_hours?: string | null;
 }
 
 export interface GasStationInput {

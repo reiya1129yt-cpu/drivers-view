@@ -188,6 +188,27 @@ function GasPricePostCard({ post, isLoggedIn }: { post: any; isLoggedIn: boolean
         </div>
       </div>
 
+      {/* Facility row */}
+      {(post.opening_hours || post.has_car_wash != null) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {post.opening_hours && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "#9ca3af" }}>
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#6b7280" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {post.opening_hours}
+            </span>
+          )}
+          {post.has_car_wash === true && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, background: "#0ea5e922", color: "#38bdf8", border: "1px solid #0ea5e944", borderRadius: 999, padding: "2px 8px" }}>
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12h16M4 12c0-4 8-8 8-8M4 12c0 4 8 8 8 8M20 12c0-4-8-8-8-8M20 12c0 4-8 8-8 8" strokeLinecap="round"/></svg>
+              洗車機あり
+            </span>
+          )}
+          {post.has_car_wash === false && (
+            <span style={{ fontSize: 11, color: "#4b5563" }}>洗車機なし</span>
+          )}
+        </div>
+      )}
+
       {/* Content */}
       {post.content && <p style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.6, margin: 0 }}>{post.content}</p>}
 
@@ -359,6 +380,8 @@ function GasPricePostModal({
   const [priceMember, setPriceMember]   = useState("");
   const [priceRegular, setPriceRegular] = useState("");
   const [content, setContent]           = useState("");
+  const [hasCarWash, setHasCarWash]     = useState<boolean | null>(null);
+  const [openingHours, setOpeningHours] = useState("");
   const [submitting, setSubmitting]     = useState(false);
   const [error, setError]               = useState("");
   const [dupeWarning, setDupeWarning]   = useState("");
@@ -387,6 +410,8 @@ function GasPricePostModal({
     if (s) {
       setFuelType(s.fuel_type);
       setPriceRegular(String(s.price));
+      if (s.has_car_wash != null) setHasCarWash(s.has_car_wash);
+      if (s.opening_hours) setOpeningHours(s.opening_hours);
       if (checkDupe(s.id)) setDupeWarning("このスタンドは直近12時間以内に投稿があります");
     }
   };
@@ -403,14 +428,16 @@ function GasPricePostModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          post_type:    "gas_price",
-          content:      content.trim(),
-          fuel_type:    fuelType,
-          price:        priceVal ? parseFloat(priceVal) : null,
-          price_member: priceMember  ? parseFloat(priceMember)  : null,
-          price_regular:priceRegular ? parseFloat(priceRegular) : null,
-          station_name: selectedStation?.station_name ?? "",
-          station_id:   selectedStation?.id ?? null,
+          post_type:     "gas_price",
+          content:       content.trim(),
+          fuel_type:     fuelType,
+          price:         priceVal ? parseFloat(priceVal) : null,
+          price_member:  priceMember  ? parseFloat(priceMember)  : null,
+          price_regular: priceRegular ? parseFloat(priceRegular) : null,
+          station_name:  selectedStation?.station_name ?? "",
+          station_id:    selectedStation?.id ?? null,
+          has_car_wash:  hasCarWash,
+          opening_hours: openingHours.trim() || null,
         }),
       });
       if (!res.ok) throw new Error("failed");
@@ -492,6 +519,69 @@ function GasPricePostModal({
               style={{ background: "#22263a", border: `1.5px solid ${priceRegular ? "#9ca3af88" : "#2a2f42"}`, borderRadius: 10, padding: "10px 10px 10px 26px", fontSize: 13, color: "#f0f2f5", outline: "none", width: "100%", boxSizing: "border-box" }}
             />
             <div style={{ fontSize: 10, color: "#6b7280", marginTop: 3, textAlign: "center" }}>一般</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Facility info */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>施設情報（任意）</div>
+
+        {/* Opening hours */}
+        <div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>営業時間</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {["24時間営業", ""].map((preset, i) => (
+              <button
+                key={i} type="button"
+                onClick={() => setOpeningHours(preset)}
+                style={{
+                  padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  border: `1.5px solid ${openingHours === preset && preset !== "" ? "#22c55e" : "#2a2f42"}`,
+                  background: openingHours === preset && preset !== "" ? "#22c55e22" : "#22263a",
+                  color: openingHours === preset && preset !== "" ? "#22c55e" : "#6b7280",
+                  display: i === 0 ? "block" : "none",
+                }}
+              >
+                24時間営業
+              </button>
+            ))}
+            <input
+              type="text"
+              value={openingHours}
+              onChange={(e) => setOpeningHours(e.target.value)}
+              placeholder="例：7:00 - 22:00"
+              style={{
+                flex: 1, background: "#22263a", border: `1.5px solid ${openingHours ? "#22c55e55" : "#2a2f42"}`,
+                borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#f0f2f5", outline: "none",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Car wash */}
+        <div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>洗車機</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {([true, false, null] as const).map((val) => {
+              const label = val === true ? "洗車機あり" : val === false ? "洗車機なし" : "不明";
+              const activeColor = val === true ? "#38bdf8" : val === false ? "#9ca3af" : "#6b7280";
+              const active = hasCarWash === val;
+              return (
+                <button
+                  key={String(val)} type="button"
+                  onClick={() => setHasCarWash(active ? null : val)}
+                  style={{
+                    flex: 1, padding: "8px 6px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    border: `1.5px solid ${active ? activeColor : "#2a2f42"}`,
+                    background: active ? `${activeColor}22` : "#22263a",
+                    color: active ? activeColor : "#6b7280",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
