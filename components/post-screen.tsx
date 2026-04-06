@@ -576,7 +576,7 @@ function GasPricePostModal({
         <div>
           <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>営業時間</div>
           <div style={{ display: "flex", gap: 6 }}>
-            {["24時間営業", ""].map((preset) => (
+            {["24時間営業", ""].map((preset, i) => (
               <button
                 key={preset || "__empty__"} type="button"
                 onClick={() => setOpeningHours(preset)}
