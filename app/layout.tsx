@@ -39,14 +39,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja" className={notoSansJP.className} suppressHydrationWarning>
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icon-192.jpg" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Drivers View" />
-        <meta name="mobile-web-app-capable" content="yes" />
-      </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
         {children}
         <ServiceWorkerRegistrar />
