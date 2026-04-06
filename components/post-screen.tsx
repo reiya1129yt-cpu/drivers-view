@@ -989,8 +989,8 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
           </div>
         )}
 
-        {!isLoading && !swrError && visiblePosts.map((post: any, idx: number) => (
-          <React.Fragment key={String(post.id)}>
+        {!isLoading && !swrError && visiblePosts.length > 0 && visiblePosts.map((post: any, idx: number) => (
+          <React.Fragment key={`${post.id ?? idx}-${idx}`}>
             {idx > 0 && idx % 5 === 0 && (
               <FeedAdCard adIndex={Math.floor(idx / 5) - 1} />
             )}
