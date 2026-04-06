@@ -128,7 +128,7 @@ export default function LuckyRoulette({ onComplete }: Props) {
         {showRays && (
           <div style={{ position: "relative", width: 120, height: 120, flexShrink: 0 }}>
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} style={{
+              <div key={`ray-${i}`} style={{
                 position: "absolute",
                 top: "50%", left: "50%",
                 width: 2, height: 48,

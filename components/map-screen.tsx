@@ -265,8 +265,10 @@ export default function MapScreen({ stations, onLocationFound, userLocation, isF
               const sub   = isStation
                 ? `${FUEL_TYPE_LABELS[(item as GasStation).fuel_type]}  ¥${Number((item as GasStation).price).toFixed(0)}`
                 : `${(item as PaSaSpot).type}  ${(item as PaSaSpot).highway}`;
+              // Prefix with type to avoid id collision between GasStation and PaSaSpot
+              const itemKey = `${isStation ? "st" : "pa"}-${item.id}`;
               return (
-                <React.Fragment key={String(item.id)}>
+                <React.Fragment key={itemKey}>
                   {i === 3 && <SearchAd adIndex={1} />}
                   <button
                     onClick={() => {
