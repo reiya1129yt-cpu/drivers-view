@@ -1,14 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Disable React strict mode — double-invocation causes timing issues
-  // where the router receives HMR actions before the second render cycle
-  // completes initialization in the sandbox environment.
   reactStrictMode: false,
   experimental: {
+    // High stale times reduce how often the client tries to refetch RSC
+    // payloads, which is what triggers the premature router dispatch on
+    // sandbox env-var reloads.
     staleTimes: {
-      dynamic: 30,
-      static: 180,
+      dynamic: 60,
+      static: 600,
     },
   },
 };
