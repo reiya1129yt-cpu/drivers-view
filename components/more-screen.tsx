@@ -620,52 +620,6 @@ export default function MoreScreen() {
           </div>
         </div>
 
-        {/* Development notice */}
-        <div style={{ margin: "0 16px 16px", background: "rgba(59,130,246,0.10)", border: "1px solid rgba(59,130,246,0.28)", borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" style={{ width: 18, height: 18, flexShrink: 0, marginTop: 1 }}>
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 3 }}>現在ポイント交換機能は開発中です</div>
-            <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.6 }}>今後、ガソリン割引・クーポン・ギフト交換などに対応予定です。</div>
-          </div>
-        </div>
-
-        {/* Reward cards */}
-        <div style={{ padding: "0 16px 4px" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>交換できる特典（予定）</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {REWARD_CARDS.map((r) => {
-              const canRedeem = points >= r.pts;
-              return (
-                <div key={r.id} style={{
-                  background: r.bg, border: `1px solid ${r.border}`,
-                  borderRadius: 16, padding: "16px", display: "flex", alignItems: "center", gap: 14,
-                  opacity: canRedeem ? 1 : 0.6,
-                }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 14, flexShrink: 0, background: `${r.color}18`, border: `1.5px solid ${r.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: r.color }}>
-                    {r.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#f0f2f5", marginBottom: 3 }}>{r.title}</div>
-                    <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.4 }}>{r.desc}</div>
-                    <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: r.color }}>{r.pts.toLocaleString()}pt</span>
-                      {canRedeem
-                        ? <span style={{ fontSize: 10, color: r.color, background: `${r.color}18`, border: `1px solid ${r.border}`, borderRadius: 999, padding: "1px 7px", fontWeight: 600 }}>交換可能</span>
-                        : <span style={{ fontSize: 10, color: "#4b5563" }}>あと{(r.pts - points).toLocaleString()}pt</span>
-                      }
-                    </div>
-                  </div>
-                  <button style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, border: "none", cursor: "not-allowed", background: canRedeem ? r.color : "#2a2f42", color: canRedeem ? "#0f1117" : "#4b5563", flexShrink: 0 }}>
-                    交換
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Point history */}
         <div style={{ padding: "20px 16px 4px" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>ポイント履歴</div>

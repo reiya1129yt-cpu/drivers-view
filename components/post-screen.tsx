@@ -457,38 +457,45 @@ function GasPricePostModal({
   // ── Success screen ────────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "12px 0 8px", textAlign: "center" }}>
-        {/* Checkmark ring */}
-        <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(34,197,94,0.12)", border: "2px solid rgba(34,197,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 36, height: 36 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: "16px 0 8px", textAlign: "center" }}>
+        {/* Animated checkmark ring */}
+        <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(34,197,94,0.12)", border: "2.5px solid rgba(34,197,94,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 40, height: 40 }}>
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </div>
+
+        {/* Message */}
         <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#f0f2f5", marginBottom: 6 }}>投稿完了！</div>
-          <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#f0f2f5", marginBottom: 8 }}>投稿が完了しました</div>
+          <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.8 }}>
             情報を共有してくれてありがとう。<br />
             あなたの投稿が他のドライバーの役に立ちます。
           </div>
         </div>
-        {/* Points awarded pill */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 999, padding: "8px 18px" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" style={{ width: 15, height: 15 }}>
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#22c55e" }}>+5pt 獲得！</span>
+
+        {/* Points earned badge */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, background: "rgba(34,197,94,0.08)", border: "1.5px solid rgba(34,197,94,0.3)", borderRadius: 16, padding: "14px 28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" style={{ width: 18, height: 18 }}>
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            <span style={{ fontSize: 28, fontWeight: 900, color: "#22c55e" }}>+5pt</span>
+          </div>
+          <span style={{ fontSize: 12, color: "#4ade80", fontWeight: 600 }}>獲得しました</span>
         </div>
+
         {/* Action buttons */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
           <button
             onClick={onClose}
-            style={{ padding: "14px", borderRadius: 12, background: "#22c55e", color: "#0f1117", fontWeight: 700, fontSize: 15, border: "none", cursor: "pointer" }}
+            style={{ padding: "15px", borderRadius: 12, background: "#22c55e", color: "#0f1117", fontWeight: 700, fontSize: 15, border: "none", cursor: "pointer" }}
           >
             マップで見る
           </button>
           <button
             onClick={() => { setSubmitted(false); setContent(""); setPriceMember(""); setPriceRegular(""); setSelectedStation(null); setOpeningHours(""); setHasCarWash(null); setError(""); }}
-            style={{ padding: "14px", borderRadius: 12, background: "#1e2235", color: "#9ca3af", fontWeight: 600, fontSize: 15, border: "1px solid #2a2f42", cursor: "pointer" }}
+            style={{ padding: "15px", borderRadius: 12, background: "#1e2235", color: "#9ca3af", fontWeight: 600, fontSize: 15, border: "1px solid #2a2f42", cursor: "pointer" }}
           >
             もう一度投稿
           </button>
@@ -679,30 +686,46 @@ function CarPostModal({ onClose, onSubmitted }: { onClose: () => void; onSubmitt
 
   if (submitted) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "12px 0 8px", textAlign: "center" }}>
-        <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(167,139,250,0.12)", border: "2px solid rgba(167,139,250,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 36, height: 36 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: "16px 0 8px", textAlign: "center" }}>
+        {/* Checkmark ring */}
+        <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(167,139,250,0.12)", border: "2.5px solid rgba(167,139,250,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 40, height: 40 }}>
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </div>
+
+        {/* Message */}
         <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#f0f2f5", marginBottom: 6 }}>投稿完了！</div>
-          <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#f0f2f5", marginBottom: 8 }}>投稿が完了しました</div>
+          <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.8 }}>
             投稿が公開されました。<br />
             コミュニティのみんなで情報をシェアしよう。
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.25)", borderRadius: 999, padding: "8px 18px" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" style={{ width: 15, height: 15 }}>
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#a78bfa" }}>+5pt 獲得！</span>
+
+        {/* Points earned badge */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, background: "rgba(167,139,250,0.08)", border: "1.5px solid rgba(167,139,250,0.3)", borderRadius: 16, padding: "14px 28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" style={{ width: 18, height: 18 }}>
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            <span style={{ fontSize: 28, fontWeight: 900, color: "#a78bfa" }}>+5pt</span>
+          </div>
+          <span style={{ fontSize: 12, color: "#c4b5fd", fontWeight: 600 }}>獲得しました</span>
         </div>
+
+        {/* Action buttons */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-          <button onClick={() => { onSubmitted(); }} style={{ padding: "14px", borderRadius: 12, background: "#a78bfa", color: "#0f1117", fontWeight: 700, fontSize: 15, border: "none", cursor: "pointer" }}>
-            投稿���見る
+          <button
+            onClick={() => { onSubmitted(); }}
+            style={{ padding: "15px", borderRadius: 12, background: "#a78bfa", color: "#0f1117", fontWeight: 700, fontSize: 15, border: "none", cursor: "pointer" }}
+          >
+            マップで見る
           </button>
-          <button onClick={() => { setSubmitted(false); setContent(""); setError(""); }} style={{ padding: "14px", borderRadius: 12, background: "#1e2235", color: "#9ca3af", fontWeight: 600, fontSize: 15, border: "1px solid #2a2f42", cursor: "pointer" }}>
+          <button
+            onClick={() => { setSubmitted(false); setContent(""); setError(""); }}
+            style={{ padding: "15px", borderRadius: 12, background: "#1e2235", color: "#9ca3af", fontWeight: 600, fontSize: 15, border: "1px solid #2a2f42", cursor: "pointer" }}
+          >
             もう一度投稿
           </button>
         </div>
