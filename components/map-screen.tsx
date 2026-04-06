@@ -44,6 +44,8 @@ export default function MapScreen({ stations, onLocationFound, userLocation, isF
   const [searchQuery, setSearchQuery]       = useState("");
   const [searchOpen, setSearchOpen]         = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [locating, setLocating]             = useState(false);
+  const [locationError, setLocationError]   = useState("");
   const [searchCategory, setSearchCategory] = useState<"station" | "price" | "region" | "pasa">("station");
   const [flyTo, setFlyTo]               = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [searching, setSearching]       = useState(false);
