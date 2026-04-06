@@ -989,23 +989,20 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
           </div>
         )}
 
-        {!isLoading && !swrError && visiblePosts.length > 0 && (
-          <>
-            {visiblePosts.map((post: any, idx: number) => (
-              <>
-                {/* Insert an ad card after every 5th post (at positions 4, 9, 14, …) */}
-                {idx > 0 && idx % 5 === 0 && (
-                  <FeedAdCard key={`ad-${idx}`} adIndex={Math.floor(idx / 5) - 1} />
-                )}
-                {post.post_type === "gas_price" ? (
-                  <GasPricePostCard key={post.id} post={post} isLoggedIn={isLoggedIn} />
-                ) : (
-                  <CarPostCard key={post.id} post={post} isLoggedIn={isLoggedIn} />
-                )}
-              </>
-            ))}
-          </>
-        )}
+        {!isLoading && !swrError && visiblePosts.length > 0 &&
+          visiblePosts.flatMap((post: any, idx: number) => {
+            const items: React.ReactNode[] = [];
+            if (idx > 0 && idx % 5 === 0) {
+              items.push(<FeedAdCard key={`ad-feed-${idx}`} adIndex={Math.floor(idx / 5) - 1} />);
+            }
+            items.push(
+              post.post_type === "gas_price"
+                ? <GasPricePostCard key={`post-${post.id}`} post={post} isLoggedIn={isLoggedIn} />
+                : <CarPostCard key={`post-${post.id}`} post={post} isLoggedIn={isLoggedIn} />
+            );
+            return items;
+          })
+        }
 
         {/* Guest gate for car posts */}
         {!isLoggedIn && (feedFilter === "all" || feedFilter === "car") && (

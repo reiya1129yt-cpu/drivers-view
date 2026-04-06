@@ -9,8 +9,18 @@ const notoSansJP = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "ドライバーズビュー - ガソリン価格マップ",
+  title: "Drivers View - ガソリン価格マップ",
   description: "近くのガソリンスタンドの価格をリアルタイムで確認・投稿できるアプリ",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Drivers View",
+  },
+  icons: {
+    apple: "/icon-192.jpg",
+    icon: "/icon-512.jpg",
+  },
 };
 
 export const viewport: Viewport = {
@@ -28,7 +38,26 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja" className={notoSansJP.className} suppressHydrationWarning>
-      <body className="font-sans antialiased" suppressHydrationWarning>{children}</body>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icon-192.jpg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Drivers View" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
+      <body className="font-sans antialiased" suppressHydrationWarning>
+        {children}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                console.warn('SW registration failed:', err);
+              });
+            });
+          }
+        `}} />
+      </body>
     </html>
   );
 }
