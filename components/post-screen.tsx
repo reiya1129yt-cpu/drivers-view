@@ -989,21 +989,17 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
           </div>
         )}
 
-        {(() => {
-          if (isLoading || swrError || visiblePosts.length === 0) return null;
-          const nodes: React.ReactNode[] = [];
-          visiblePosts.forEach((post: any, idx: number) => {
-            if (idx > 0 && idx % 5 === 0) {
-              nodes.push(<FeedAdCard key={`ad-${idx}`} adIndex={Math.floor(idx / 5) - 1} />);
+        {!isLoading && !swrError && visiblePosts.map((post: any, idx: number) => (
+          <React.Fragment key={String(post.id)}>
+            {idx > 0 && idx % 5 === 0 && (
+              <FeedAdCard adIndex={Math.floor(idx / 5) - 1} />
+            )}
+            {post.post_type === "gas_price"
+              ? <GasPricePostCard post={post} isLoggedIn={isLoggedIn} />
+              : <CarPostCard post={post} isLoggedIn={isLoggedIn} />
             }
-            nodes.push(
-              post.post_type === "gas_price"
-                ? <GasPricePostCard key={`post-${post.id}`} post={post} isLoggedIn={isLoggedIn} />
-                : <CarPostCard key={`post-${post.id}`} post={post} isLoggedIn={isLoggedIn} />
-            );
-          });
-          return nodes;
-        })()}
+          </React.Fragment>
+        ))}
 
         {/* Guest gate for car posts */}
         {!isLoggedIn && (feedFilter === "all" || feedFilter === "car") && (
