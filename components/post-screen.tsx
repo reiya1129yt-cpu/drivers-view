@@ -490,7 +490,7 @@ function GasPricePostModal({
             onClick={() => { setSubmitted(false); setContent(""); setPriceMember(""); setPriceRegular(""); setSelectedStation(null); setOpeningHours(""); setHasCarWash(null); setError(""); }}
             style={{ padding: "14px", borderRadius: 12, background: "#1e2235", color: "#9ca3af", fontWeight: 600, fontSize: 15, border: "1px solid #2a2f42", cursor: "pointer" }}
           >
-            も���一度投稿
+            もう一度投稿
           </button>
         </div>
       </div>
@@ -803,17 +803,8 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
   ];
 
   const visiblePosts = useMemo(() => {
-    // Deduplicate by id so React keys are always unique
-    const seen = new Set<string>();
-    const deduped = posts.filter((p: any) => {
-      const k = String(p.id);
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
-
     // Guest restrictions: hide car posts from non-logged-in users
-    let base = deduped.filter((p: any) => {
+    let base = posts.filter((p: any) => {
       if (p.post_type === "car" && !isLoggedIn) return false;
       if (feedFilter !== "all" && p.post_type !== feedFilter) return false;
       return true;
