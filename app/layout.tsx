@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
+import ServiceWorkerRegistrar from "@/components/sw-registrar";
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
@@ -48,15 +49,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
         {children}
-        <script dangerouslySetInnerHTML={{ __html: `
-          if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                console.warn('SW registration failed:', err);
-              });
-            });
-          }
-        `}} />
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );
