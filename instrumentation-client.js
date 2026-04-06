@@ -5,25 +5,34 @@
 // App Router has mounted on the client.
 
 if (typeof window !== "undefined") {
-  // Intercept synchronous throws
-  const _origOnError = window.onerror;
-  window.onerror = function (msg, src, line, col, err) {
-    if (
-      typeof msg === "string" &&
-      msg.includes("Router action dispatched before initialization")
-    ) {
-      setTimeout(() => window.location.reload(), 500);
-      return true; // suppress the error overlay
-    }
-    return _origOnError ? _origOnError.call(this, msg, src, line, col, err) : false;
-  };
+  const ROUTER_ERR = "Router action dispatched before initialization";
 
-  // Intercept promise rejections
+  // 1. Capture-phase error listener — catches errors thrown inside event
+  //    listener callbacks (which window.onerror does NOT catch).
+  window.addEventListener("error", function (e) {
+    if (e.message && e.message.includes(ROUTER_ERR)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      setTimeout(() => window.location.reload(), 300);
+    }
+  }, true /* capture */);
+
+  // 2. Unhandled promise rejection fallback
   window.addEventListener("unhandledrejection", function (e) {
     const msg = e.reason?.message ?? String(e.reason ?? "");
-    if (msg.includes("Router action dispatched before initialization")) {
+    if (msg.includes(ROUTER_ERR)) {
       e.preventDefault();
-      setTimeout(() => window.location.reload(), 500);
+      setTimeout(() => window.location.reload(), 300);
     }
   });
+
+  // 3. Legacy onerror as last resort
+  const _prev = window.onerror;
+  window.onerror = function (msg, src, line, col, err) {
+    if (typeof msg === "string" && msg.includes(ROUTER_ERR)) {
+      setTimeout(() => window.location.reload(), 300);
+      return true;
+    }
+    return _prev ? _prev.call(this, msg, src, line, col, err) : false;
+  };
 }
