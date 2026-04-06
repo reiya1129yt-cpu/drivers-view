@@ -1,17 +1,27 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import useSWR, { SWRConfig } from "swr";
 import BottomNav from "@/components/bottom-nav";
 import MapScreen from "@/components/map-screen";
 import PostScreen from "@/components/post-screen";
 import MoreScreen from "@/components/more-screen";
+import AuthModal, { type GuestProfile } from "@/components/auth-modal";
 import { MOCK_STATIONS, generateNearbyStations } from "@/lib/mock-data";
 import { useFavorites } from "@/lib/use-favorites";
 import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS } from "@/lib/types";
 import type { GasStation } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
 
 type Tab = "map" | "post" | "more";
+
+export interface AuthUser {
+  id: string;
+  email?: string;
+  nickname: string;
+  prefecture: string;
+  isGuest: boolean;
+}
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -22,6 +32,56 @@ const fetcher = async (url: string) => {
 export default function AppShell() {
   const [activeTab, setActiveTab]       = useState<Tab>("map");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [authUser, setAuthUser]         = useState<AuthUser | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Restore Supabase session on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setAuthUser({
+          id: session.user.id,
+          email: session.user.email ?? undefined,
+          nickname: session.user.user_metadata?.nickname ?? session.user.email?.split("@")[0] ?? "ユーザー",
+          prefecture: session.user.user_metadata?.prefecture ?? "",
+          isGuest: false,
+        });
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setAuthUser({
+          id: session.user.id,
+          email: session.user.email ?? undefined,
+          nickname: session.user.user_metadata?.nickname ?? session.user.email?.split("@")[0] ?? "ユーザー",
+          prefecture: session.user.user_metadata?.prefecture ?? "",
+          isGuest: false,
+        });
+      } else {
+        setAuthUser(null);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const isLoggedIn = !!authUser && !authUser.isGuest;
+  const isGuest    = !!authUser?.isGuest;
+
+  function handleGuestContinue(profile: GuestProfile) {
+    setAuthUser({ id: `guest_${Date.now()}`, nickname: profile.nickname, prefecture: profile.prefecture, isGuest: true });
+    setShowAuthModal(false);
+  }
+
+  function handleAuthSuccess() {
+    setShowAuthModal(false);
+  }
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setAuthUser(null);
+  }
 
   const { data: dbStations } = useSWR<GasStation[]>("/api/gas-stations", fetcher, { refreshInterval: 60000 });
 
@@ -88,32 +148,53 @@ export default function AppShell() {
         </div>
       )}
 
-      <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
         <div style={{ position: "absolute", inset: 0, display: activeTab === "map" ? "block" : "none" }}>
           <MapScreen
             stations={stations}
             onLocationFound={handleLocationFound}
             userLocation={userLocation}
-            isFavorite={isFavorite}
-            canAddFavorite={canAdd}
-            onToggleFavorite={toggle}
+            isFavorite={isLoggedIn ? isFavorite : () => false}
+            canAddFavorite={isLoggedIn && canAdd}
+            onToggleFavorite={isLoggedIn ? toggle : () => setShowAuthModal(true)}
           />
         </div>
 
         {activeTab === "post" && (
           <div style={{ position: "absolute", inset: 0 }}>
-            <PostScreen userLocation={userLocation} nearbyStations={stations} />
+            <PostScreen
+              userLocation={userLocation}
+              nearbyStations={stations}
+              isLoggedIn={isLoggedIn}
+              isGuest={isGuest}
+              authUser={authUser}
+              onRequestLogin={() => setShowAuthModal(true)}
+            />
           </div>
         )}
 
         {activeTab === "more" && (
           <div style={{ position: "absolute", inset: 0, overflowY: "auto" }}>
-            <MoreScreen />
+            <MoreScreen
+              isLoggedIn={isLoggedIn}
+              isGuest={isGuest}
+              authUser={authUser}
+              onRequestLogin={() => setShowAuthModal(true)}
+              onLogout={handleLogout}
+            />
           </div>
         )}
       </div>
 
       <BottomNav activeTab={activeTab} onTabChange={useCallback((tab: Tab) => setActiveTab(tab), [])} />
+
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onGuestContinue={handleGuestContinue}
+          onAuthSuccess={handleAuthSuccess}
+        />
+      )}
     </main>
     </SWRConfig>
   );

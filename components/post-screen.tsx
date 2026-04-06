@@ -46,7 +46,7 @@ function Avatar({ name, size = 40 }: { name: string; size?: number }) {
 
 // ── Comment section — gated behind login ─────────────────────────────────────
 
-function CommentSection({ postId, isLoggedIn }: { postId: string; isLoggedIn: boolean }) {
+function CommentSection({ postId, isLoggedIn, onRequestLogin }: { postId: string; isLoggedIn: boolean; onRequestLogin?: () => void }) {
   const [open, setOpen]     = useState(false);
   const [text, setText]     = useState("");
   const [comments, setComments] = useState<{ id: string; author: string; text: string; at: string }[]>([]);
@@ -103,8 +103,12 @@ function CommentSection({ postId, isLoggedIn }: { postId: string; isLoggedIn: bo
               }}>送信</button>
             </div>
           ) : (
-            <div style={{ fontSize: 12, color: "#6b7280", padding: "6px 8px", background: "#12151f", borderRadius: 8, textAlign: "center" }}>
-              コメントするにはログインが必要です
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 8 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" style={{ width: 13, height: 13, flexShrink: 0 }}>
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <span style={{ flex: 1, fontSize: 12, color: "#93c5fd" }}>この機能はログインが必要です</span>
+              <button onClick={onRequestLogin} style={{ padding: "4px 10px", borderRadius: 999, background: "#3b82f6", color: "#fff", fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer", flexShrink: 0 }}>ログイン</button>
             </div>
           )}
         </div>
@@ -151,7 +155,7 @@ function PriceDisplay({ post, color }: { post: any; color: string }) {
 
 // ── Post cards ── keyed lists fixed ──────────────────────────────────────────
 
-function GasPricePostCard({ post, isLoggedIn }: { post: any; isLoggedIn: boolean }) {
+function GasPricePostCard({ post, isLoggedIn, onRequestLogin }: { post: any; isLoggedIn: boolean; onRequestLogin?: () => void }) {
   const [liked, setLiked] = useState(false);
   const color = FUEL_TYPE_COLORS[post.fuel_type as FuelType] ?? "#ef4444";
   const bg    = FUEL_TYPE_BG[post.fuel_type as FuelType]     ?? "rgba(239,68,68,0.12)";
@@ -230,12 +234,12 @@ function GasPricePostCard({ post, isLoggedIn }: { post: any; isLoggedIn: boolean
         </button>
       </div>
 
-      <CommentSection postId={post.id} isLoggedIn={isLoggedIn} />
+      <CommentSection postId={post.id} isLoggedIn={isLoggedIn} onRequestLogin={onRequestLogin} />
     </div>
   );
 }
 
-function CarPostCard({ post, isLoggedIn }: { post: any; isLoggedIn: boolean }) {
+function CarPostCard({ post, isLoggedIn, onRequestLogin }: { post: any; isLoggedIn: boolean; onRequestLogin?: () => void }) {
   const [liked, setLiked] = useState(false);
   const cat = CAR_CATEGORIES.find((c) => c.id === post.car_category);
   const catColor = cat?.color ?? "#9ca3af";
@@ -281,7 +285,7 @@ function CarPostCard({ post, isLoggedIn }: { post: any; isLoggedIn: boolean }) {
         </button>
       </div>
 
-      <CommentSection postId={post.id} isLoggedIn={isLoggedIn} />
+      <CommentSection postId={post.id} isLoggedIn={isLoggedIn} onRequestLogin={onRequestLogin} />
     </div>
   );
 }
@@ -787,9 +791,13 @@ type SearchCategory = "station" | "author" | "pasa";
 interface PostScreenProps {
   userLocation?: { lat: number; lng: number } | null;
   nearbyStations?: GasStation[];
+  isLoggedIn?: boolean;
+  isGuest?: boolean;
+  authUser?: { id: string; nickname: string; prefecture: string; isGuest: boolean } | null;
+  onRequestLogin?: () => void;
 }
 
-export default function PostScreen({ userLocation: _userLocation, nearbyStations = [] }: PostScreenProps) {
+export default function PostScreen({ userLocation: _userLocation, nearbyStations = [], isLoggedIn: isLoggedInProp, isGuest: isGuestProp, authUser, onRequestLogin }: PostScreenProps) {
   const [modal, setModal]               = useState<ModalType>("none");
   const [feedFilter, setFeedFilter]     = useState<FeedFilter>("all");
   const [sortMode, setSortMode]         = useState<SortMode>("newest");
@@ -799,8 +807,10 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
   const searchRef = useRef<HTMLInputElement>(null);
 
   const { data, mutate, isLoading, error: swrError } = useSWR("/api/community-posts", fetcher, { refreshInterval: 30000 });
-  const posts: any[]        = data?.posts     || [];
-  const isLoggedIn: boolean = data?.isLoggedIn || false;
+  const posts: any[] = data?.posts || [];
+  // Prefer prop-based auth (from Supabase session) over SWR-based
+  const isLoggedIn: boolean = isLoggedInProp ?? data?.isLoggedIn ?? false;
+  const isGuest: boolean    = isGuestProp ?? false;
 
   const handleSubmitted = async () => { setModal("none"); await mutate(); };
 
@@ -1024,8 +1034,8 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
               <FeedAdCard adIndex={Math.floor(idx / 5) - 1} />
             )}
             {post.post_type === "gas_price"
-              ? <GasPricePostCard post={post} isLoggedIn={isLoggedIn} />
-              : <CarPostCard post={post} isLoggedIn={isLoggedIn} />
+              ? <GasPricePostCard post={post} isLoggedIn={isLoggedIn} onRequestLogin={onRequestLogin} />
+              : <CarPostCard post={post} isLoggedIn={isLoggedIn} onRequestLogin={onRequestLogin} />
             }
           </React.Fragment>
         ))}
@@ -1041,7 +1051,7 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
             <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, marginBottom: 16 }}>
               車の話題はログイン後に閲覧できます
             </div>
-            <button style={{ padding: "10px 24px", borderRadius: 999, background: "#a78bfa", color: "#0f1117", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}>
+            <button onClick={onRequestLogin} style={{ padding: "10px 24px", borderRadius: 999, background: "#a78bfa", color: "#0f1117", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}>
               ログイン / 登録する
             </button>
           </div>
@@ -1088,7 +1098,7 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
               </div>
             </button>
             <button
-              onClick={() => isLoggedIn ? setModal("car") : undefined}
+              onClick={() => isLoggedIn ? setModal("car") : (onRequestLogin?.())}
               style={{ flex: 1, padding: "20px 12px", borderRadius: 16, background: isLoggedIn ? "rgba(167,139,250,0.1)" : "#12151f", border: `2px solid ${isLoggedIn ? "rgba(167,139,250,0.4)" : "#2a2f42"}`, cursor: isLoggedIn ? "pointer" : "not-allowed", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, opacity: isLoggedIn ? 1 : 0.55 }}>
               <svg viewBox="0 0 24 24" fill="none" stroke={isLoggedIn ? "#a78bfa" : "#4b5563"} strokeWidth="2" style={{ width: 32, height: 32 }}>
                 <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/>

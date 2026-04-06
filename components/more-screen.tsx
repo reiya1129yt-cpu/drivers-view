@@ -330,8 +330,16 @@ function Divider() {
   return <div style={{ height: 1, background: "#2a2f42", margin: "0 16px" }} />;
 }
 
-// ── Main component ────────���───────────────────────────────────────────────────
-export default function MoreScreen() {
+// ── Main component ────────────────────────────────────────────────────────────
+interface MoreScreenProps {
+  isLoggedIn?: boolean;
+  isGuest?: boolean;
+  authUser?: { id: string; nickname: string; prefecture: string; isGuest: boolean } | null;
+  onRequestLogin?: () => void;
+  onLogout?: () => void;
+}
+
+export default function MoreScreen({ isLoggedIn = false, isGuest = false, authUser = null, onRequestLogin, onLogout }: MoreScreenProps) {
   const [section, setSection]           = useState<Section>("main");
   const [notifEnabled, setNotifEnabled] = useState(true);
   const [lang, setLang]                 = useState<Lang>("ja");
@@ -659,12 +667,21 @@ export default function MoreScreen() {
       <div style={{ padding: "14px 16px 0" }}>
         <Card>
           <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 18px" }}>
-            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg,#22c55e,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, color: "#fff", flexShrink: 0 }}>G</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#f0f2f5" }}>{t.guest}</div>
-              <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>{t.notLoggedIn}</div>
+            <div style={{ width: 52, height: 52, borderRadius: "50%", background: isLoggedIn ? "linear-gradient(135deg,#22c55e,#3b82f6)" : "linear-gradient(135deg,#374151,#4b5563)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, color: "#fff", flexShrink: 0, cursor: "pointer" }}>
+              {authUser ? authUser.nickname.charAt(0).toUpperCase() : "G"}
             </div>
-            <button style={{ padding: "8px 16px", borderRadius: 999, background: "#22c55e", color: "#0f1117", fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer" }}>{t.login}</button>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#f0f2f5" }}>
+                {authUser ? authUser.nickname : t.guest}
+              </div>
+              <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
+                {isLoggedIn ? authUser?.prefecture ?? "" : isGuest ? `${authUser?.prefecture ?? ""} · ゲスト` : t.notLoggedIn}
+              </div>
+            </div>
+            {isLoggedIn
+              ? <button onClick={onLogout} style={{ padding: "8px 16px", borderRadius: 999, background: "#1e2235", color: "#9ca3af", fontSize: 13, fontWeight: 700, border: "1px solid #2a2f42", cursor: "pointer" }}>ログアウト</button>
+              : <button onClick={onRequestLogin} style={{ padding: "8px 16px", borderRadius: 999, background: "#22c55e", color: "#0f1117", fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer" }}>{t.login}</button>
+            }
           </div>
           {/* Points summary strip */}
           <div style={{ borderTop: "1px solid #2a2f42", margin: "0 16px" }} />
@@ -690,9 +707,20 @@ export default function MoreScreen() {
         </Card>
       </div>
 
-      {/* AI Prediction */}
+      {/* AI Prediction — login required */}
       <SectionHeader label={t.aiTitle} />
       <Card>
+        {!isLoggedIn && (
+          <div style={{ padding: "0 0 4px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "rgba(59,130,246,0.07)", borderBottom: "1px solid #2a2f42" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" style={{ width: 16, height: 16, flexShrink: 0 }}>
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <span style={{ flex: 1, fontSize: 13, color: "#93c5fd" }}>この機能はログインが必要です</span>
+              <button onClick={onRequestLogin} style={{ padding: "6px 14px", borderRadius: 999, background: "#3b82f6", color: "#fff", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer" }}>ログイン</button>
+            </div>
+          </div>
+        )}
         <div style={{ padding: "12px 16px", background: "rgba(34,197,94,0.06)", borderBottom: "1px solid #2a2f42", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" style={{ width: 16, height: 16 }}>
@@ -741,33 +769,45 @@ export default function MoreScreen() {
       {/* Notifications */}
       <SectionHeader label={t.notifications} />
       <Card>
-        <SettingsRow
-          onClick={() => setSection("notifications")}
-          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>}
-          label={t.notifCenter}
-          sub={t.unread(unreadCount)}
-          right={
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#0f1117" }}>{unreadCount}</div>
-              <svg viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="2" strokeLinecap="round" style={{ width: 16, height: 16 }}><path d="M9 18l6-6-6-6"/></svg>
+        {isLoggedIn ? (
+          <>
+            <SettingsRow
+              onClick={() => setSection("notifications")}
+              icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>}
+              label={t.notifCenter}
+              sub={t.unread(unreadCount)}
+              right={
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#0f1117" }}>{unreadCount}</div>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="2" strokeLinecap="round" style={{ width: 16, height: 16 }}><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+              }
+            />
+            <Divider />
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 16px" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "#1e2235", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}>
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><circle cx="18" cy="5" r="3" fill="#22c55e" stroke="none"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, color: "#f0f2f5", fontWeight: 500 }}>{t.priceAlert}</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>{t.priceAlertSub}</div>
+              </div>
+              <button onClick={() => setNotifEnabled(!notifEnabled)} style={{ width: 46, height: 26, borderRadius: 999, background: notifEnabled ? "#22c55e" : "#2a2f42", border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                <div style={{ position: "absolute", top: 3, left: notifEnabled ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+              </button>
             </div>
-          }
-        />
-        <Divider />
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 16px" }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#1e2235", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", flexShrink: 0 }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}>
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><circle cx="18" cy="5" r="3" fill="#22c55e" stroke="none"/>
+          </>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" style={{ width: 16, height: 16, flexShrink: 0 }}>
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
+            <span style={{ flex: 1, fontSize: 13, color: "#93c5fd" }}>この機能はログインが必要です</span>
+            <button onClick={onRequestLogin} style={{ padding: "6px 14px", borderRadius: 999, background: "#3b82f6", color: "#fff", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer" }}>ログイン</button>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, color: "#f0f2f5", fontWeight: 500 }}>{t.priceAlert}</div>
-            <div style={{ fontSize: 12, color: "#6b7280" }}>{t.priceAlertSub}</div>
-          </div>
-          <button onClick={() => setNotifEnabled(!notifEnabled)} style={{ width: 46, height: 26, borderRadius: 999, background: notifEnabled ? "#22c55e" : "#2a2f42", border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-            <div style={{ position: "absolute", top: 3, left: notifEnabled ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
-          </button>
-        </div>
+        )}
       </Card>
 
       {/* News */}
