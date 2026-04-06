@@ -9,10 +9,6 @@ const notoSansJP = Noto_Sans_JP({
   display: "swap",
 });
 
-// Force the root layout to be statically rendered so that env-var HMR
-// reloads do not trigger an RSC router dispatch before initialization.
-export const dynamic = "force-static";
-
 export const metadata: Metadata = {
   title: "Drivers View - ガソリン価格マップ",
   description: "近くのガソリンスタンドの価格をリアルタイムで確認・投稿できるアプリ",
