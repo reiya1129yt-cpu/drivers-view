@@ -5,6 +5,7 @@ import DynamicMap from "@/components/dynamic-map";
 import type { FuelType, GasStation, PaSaSpot } from "@/lib/types";
 import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS } from "@/lib/types";
 import { MOCK_STATIONS, MOCK_PASA } from "@/lib/mock-data"; // v2
+import { BannerAd, SearchAd } from "@/components/ad-card";
 
 type FilterType = FuelType | "all" | "pasa";
 
@@ -39,9 +40,10 @@ async function geocodePlace(query: string): Promise<{ lat: number; lng: number }
 }
 
 export default function MapScreen({ stations, onLocationFound, userLocation, isFavorite, canAddFavorite, onToggleFavorite }: MapScreenProps) {
-  const [selectedFuel, setSelectedFuel] = useState<FilterType>("all");
-  const [searchQuery, setSearchQuery]   = useState("");
-  const [searchOpen, setSearchOpen]     = useState(false);
+  const [selectedFuel, setSelectedFuel]     = useState<FilterType>("all");
+  const [searchQuery, setSearchQuery]       = useState("");
+  const [searchOpen, setSearchOpen]         = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [searchCategory, setSearchCategory] = useState<"station" | "price" | "region" | "pasa">("station");
   const [flyTo, setFlyTo]               = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [searching, setSearching]       = useState(false);
@@ -262,39 +264,50 @@ export default function MapScreen({ stations, onLocationFound, userLocation, isF
                 ? `${FUEL_TYPE_LABELS[(item as GasStation).fuel_type]}  ¥${Number((item as GasStation).price).toFixed(0)}`
                 : `${(item as PaSaSpot).type}  ${(item as PaSaSpot).highway}`;
               return (
-                <button key={item.id}
-                  onClick={() => {
-                    setFlyTo({ lat: item.latitude, lng: item.longitude, zoom: 15 });
-                    closeSearch();
-                  }}
-                  style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 12,
-                    padding: "11px 16px", background: "none", border: "none",
-                    borderBottom: i < searchResults.length - 1 ? "1px solid #1e2235" : "none",
-                    cursor: "pointer", textAlign: "left",
-                  }}
-                >
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}18`, border: `1px solid ${color}44`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="14" height="14" fill="none" stroke={color} strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M12 2a7 7 0 017 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 017-7z"/><circle cx="12" cy="9" r="2.5"/>
+                <>
+                  {/* Inject a search ad after the 3rd result */}
+                  {i === 3 && <SearchAd key="search-ad" adIndex={1} />}
+                  <button key={item.id}
+                    onClick={() => {
+                      setFlyTo({ lat: item.latitude, lng: item.longitude, zoom: 15 });
+                      closeSearch();
+                    }}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", gap: 12,
+                      padding: "11px 16px", background: "none", border: "none",
+                      borderBottom: i < searchResults.length - 1 ? "1px solid #1e2235" : "none",
+                      cursor: "pointer", textAlign: "left",
+                    }}
+                  >
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}18`, border: `1px solid ${color}44`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <svg width="14" height="14" fill="none" stroke={color} strokeWidth="2" viewBox="0 0 24 24">
+                        <path d="M12 2a7 7 0 017 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 017-7z"/><circle cx="12" cy="9" r="2.5"/>
+                      </svg>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f2f5" }}>{title}</div>
+                      <div style={{ fontSize: 11, color: color, marginTop: 1 }}>{sub}</div>
+                    </div>
+                    <svg width="13" height="13" fill="none" stroke="#4b5563" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M9 18l6-6-6-6" strokeLinecap="round"/>
                     </svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f2f5" }}>{title}</div>
-                    <div style={{ fontSize: 11, color: color, marginTop: 1 }}>{sub}</div>
-                  </div>
-                  <svg width="13" height="13" fill="none" stroke="#4b5563" strokeWidth="2" viewBox="0 0 24 24">
-                    <path d="M9 18l6-6-6-6" strokeLinecap="round"/>
-                  </svg>
-                </button>
+                  </button>
+                </>
               );
             })}
           </div>
         )}
       </div>
 
+      {/* Banner ad — pinned to bottom, above the map */}
+      {!bannerDismissed && (
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 900 }}>
+          <BannerAd adIndex={0} onClose={() => setBannerDismissed(true)} />
+        </div>
+      )}
+
       {/* Map — fills remaining space below the header */}
-      <div style={{ position: "absolute", inset: 0, top: 60 }}>
+      <div style={{ position: "absolute", inset: 0, top: 60, bottom: bannerDismissed ? 0 : 64 }}>
         <DynamicMap
           stations={filteredStations}
           pasaSpots={filteredPaSa}

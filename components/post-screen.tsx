@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo } from "react";
 import useSWR from "swr";
 import type { FuelType, GasStation } from "@/lib/types";
 import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS, FUEL_TYPE_BG } from "@/lib/types";
+import { FeedAdCard } from "@/components/ad-card";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -843,13 +844,19 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
           </div>
         )}
 
-        {visiblePosts.map((post: any) =>
-          post.post_type === "gas_price" ? (
-            <GasPricePostCard key={post.id} post={post} isLoggedIn={isLoggedIn} />
-          ) : (
-            <CarPostCard key={post.id} post={post} isLoggedIn={isLoggedIn} />
-          )
-        )}
+        {visiblePosts.map((post: any, idx: number) => (
+          <>
+            {/* Insert an ad card after every 5th post (at positions 4, 9, 14, …) */}
+            {idx > 0 && idx % 5 === 0 && (
+              <FeedAdCard key={`ad-${idx}`} adIndex={Math.floor(idx / 5) - 1} />
+            )}
+            {post.post_type === "gas_price" ? (
+              <GasPricePostCard key={post.id} post={post} isLoggedIn={isLoggedIn} />
+            ) : (
+              <CarPostCard key={post.id} post={post} isLoggedIn={isLoggedIn} />
+            )}
+          </>
+        ))}
 
         {/* Guest gate for car posts */}
         {!isLoggedIn && (feedFilter === "all" || feedFilter === "car") && (
