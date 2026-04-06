@@ -95,60 +95,48 @@ export default function PremiumSection({ isPremium = false, onSubscribe }: Premi
   }
 
   return (
-    <div style={{ padding: "16px 16px 0" }}>
-      {/* Premium card */}
+    <div style={{ padding: "12px 16px 0" }}>
       <div style={{
-        borderRadius: 20,
-        background: "linear-gradient(160deg, #0f0d00 0%, #1c1500 40%, #120f00 100%)",
-        border: "1px solid rgba(184,134,11,0.6)",
+        borderRadius: 16,
+        background: "#12100a",
+        border: "1px solid rgba(184,134,11,0.3)",
         overflow: "hidden",
-        boxShadow: "0 4px 24px rgba(212,175,55,0.08)",
       }}>
-        {/* Top banner */}
-        <div style={{
-          background: "linear-gradient(90deg, #b8860b 0%, #d4af37 40%, #f5d060 60%, #d4af37 80%, #b8860b 100%)",
-          padding: "11px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <svg viewBox="0 0 24 24" fill="#0f0d00" stroke="none" style={{ width: 18, height: 18 }}>
+        {/* Header row */}
+        <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 9,
+            background: "rgba(212,175,55,0.08)",
+            border: "1px solid rgba(212,175,55,0.2)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <svg viewBox="0 0 24 24" fill="#d4af37" stroke="none" style={{ width: 15, height: 15 }}>
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
-            <span style={{ fontSize: 15, fontWeight: 900, color: "#0f0d00", letterSpacing: "0.04em" }}>プレミアム会員</span>
           </div>
-          <span style={{ fontSize: 13, fontWeight: 800, color: "#0f0d00" }}>330円<span style={{ fontSize: 11, fontWeight: 600 }}>/月</span></span>
-        </div>
-
-        {/* Benefits grid */}
-        <div style={{ padding: "16px 18px 6px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 12px" }}>
-            {BENEFITS.map((b) => (
-              <div key={b.label} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: "rgba(212,175,55,0.1)",
-                  border: "1px solid rgba(212,175,55,0.25)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#d4af37", flexShrink: 0,
-                }}>
-                  {b.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#e8d5a3", lineHeight: 1.3 }}>{b.label}</div>
-                  <div style={{ fontSize: 10, color: "#7a6540", lineHeight: 1.4, marginTop: 1 }}>{b.sub}</div>
-                </div>
-              </div>
-            ))}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#c9a84c" }}>DriverView プレミアム</div>
+            <div style={{ fontSize: 11, color: "#6b5c3a", marginTop: 1 }}>月330円 · いつでもキャンセル可</div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(184,134,11,0.3), transparent)", margin: "10px 0" }} />
+        {/* Compact benefits list */}
+        <div style={{ padding: "0 16px 4px", display: "flex", flexDirection: "column", gap: 1 }}>
+          {BENEFITS.map((b) => (
+            <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
+              <div style={{ color: "#8a6e2e", flexShrink: 0 }}>{b.icon}</div>
+              <span style={{ fontSize: 12, color: "#c4a55a", fontWeight: 600 }}>{b.label}</span>
+              <span style={{ fontSize: 11, color: "#4a3e20", marginLeft: 2 }}>— {b.sub}</span>
+            </div>
+          ))}
+        </div>
 
-        {/* CTA button */}
-        <div style={{ padding: "4px 18px 18px" }}>
+        {/* Thin divider */}
+        <div style={{ height: 1, background: "rgba(184,134,11,0.15)", margin: "6px 16px" }} />
+
+        {/* CTA */}
+        <div style={{ padding: "8px 16px 14px", display: "flex", alignItems: "center", gap: 10 }}>
           <button
             onMouseDown={() => setPressed(true)}
             onMouseUp={() => setPressed(false)}
@@ -157,35 +145,22 @@ export default function PremiumSection({ isPremium = false, onSubscribe }: Premi
             onTouchEnd={() => setPressed(false)}
             onClick={onSubscribe}
             style={{
-              width: "100%",
-              padding: "15px",
-              borderRadius: 14,
-              background: pressed
-                ? "linear-gradient(90deg, #8a6500, #b8941a, #8a6500)"
-                : "linear-gradient(90deg, #b8860b 0%, #d4af37 35%, #f5d060 60%, #d4af37 80%, #b8860b 100%)",
-              border: "none",
+              flex: 1,
+              padding: "10px 16px",
+              borderRadius: 10,
+              background: pressed ? "rgba(184,134,11,0.18)" : "rgba(184,134,11,0.12)",
+              border: "1px solid rgba(184,134,11,0.35)",
               cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              transition: "filter 0.15s",
-              filter: pressed ? "brightness(0.85)" : "brightness(1)",
-              boxShadow: "0 2px 16px rgba(212,175,55,0.25)",
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#c9a84c",
+              transition: "background 0.15s",
+              letterSpacing: "0.01em",
             }}
           >
-            <svg viewBox="0 0 24 24" fill="#0f0d00" stroke="none" style={{ width: 17, height: 17 }}>
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
-            <span style={{ fontSize: 16, fontWeight: 900, color: "#0f0d00", letterSpacing: "0.02em" }}>
-              プレミアムに登録する
-            </span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#3a2e00" }}>330円/月</span>
+            もっと便利に使う
           </button>
-
-          <div style={{ textAlign: "center", marginTop: 9, fontSize: 11, color: "#4a3e20" }}>
-            いつでもキャンセル可能 · 自動更新
-          </div>
+          <span style={{ fontSize: 11, color: "#4a3e20", flexShrink: 0 }}>330円/月</span>
         </div>
       </div>
     </div>
