@@ -1,10 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Disable React strict mode — double-invocation causes timing issues
+  // where the router receives HMR actions before the second render cycle
+  // completes initialization in the sandbox environment.
+  reactStrictMode: false,
   experimental: {
-    // Give the router a 30-second grace period before treating a cached RSC
-    // response as stale. This prevents 5 simultaneous RSC refetch attempts
-    // during the Turbopack recompile window on hot-reload.
     staleTimes: {
       dynamic: 30,
       static: 180,
