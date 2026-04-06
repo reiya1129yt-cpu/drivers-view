@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import useSWR from "swr";
 import type { FuelType, GasStation } from "@/lib/types";
 import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS, FUEL_TYPE_BG } from "@/lib/types";
@@ -990,18 +990,17 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
         )}
 
         {!isLoading && !swrError && visiblePosts.length > 0 &&
-          visiblePosts.flatMap((post: any, idx: number) => {
-            const items: React.ReactNode[] = [];
-            if (idx > 0 && idx % 5 === 0) {
-              items.push(<FeedAdCard key={`ad-feed-${idx}`} adIndex={Math.floor(idx / 5) - 1} />);
-            }
-            items.push(
-              post.post_type === "gas_price"
-                ? <GasPricePostCard key={`post-${post.id}`} post={post} isLoggedIn={isLoggedIn} />
-                : <CarPostCard key={`post-${post.id}`} post={post} isLoggedIn={isLoggedIn} />
-            );
-            return items;
-          })
+          visiblePosts.map((post: any, idx: number) => (
+            <React.Fragment key={`item-${post.id}`}>
+              {idx > 0 && idx % 5 === 0 && (
+                <FeedAdCard adIndex={Math.floor(idx / 5) - 1} />
+              )}
+              {post.post_type === "gas_price"
+                ? <GasPricePostCard post={post} isLoggedIn={isLoggedIn} />
+                : <CarPostCard post={post} isLoggedIn={isLoggedIn} />
+              }
+            </React.Fragment>
+          ))
         }
 
         {/* Guest gate for car posts */}
