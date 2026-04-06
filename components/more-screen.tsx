@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import MissionsSection from "@/components/missions-section";
 
 // ── i18n strings (3 languages) ────────────────────────────────────────────────
 const I18N = {
@@ -329,7 +330,7 @@ function Divider() {
   return <div style={{ height: 1, background: "#2a2f42", margin: "0 16px" }} />;
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main component ────────���───────────────────────────────────────────────────
 export default function MoreScreen() {
   const [section, setSection]           = useState<Section>("main");
   const [notifEnabled, setNotifEnabled] = useState(true);
@@ -337,7 +338,34 @@ export default function MoreScreen() {
   const [toast, setToast]               = useState<{ delta: number; label: string } | null>(null);
   const [points, setPoints]             = useState(MOCK_POINTS);
   const [history, setHistory]           = useState<HistoryEntry[]>(MOCK_POINT_HISTORY);
+  const [regBonusClaimed, setRegBonusClaimed] = useState(false);
   const t = I18N[lang];
+
+  // Claim registration bonus once on mount (guest device ID)
+  useEffect(() => {
+    const claimed = sessionStorage.getItem("dv_reg_bonus_claimed");
+    if (claimed) { setRegBonusClaimed(true); return; }
+    let id = sessionStorage.getItem("dv_device_id");
+    if (!id) {
+      id = `guest_${Math.random().toString(36).slice(2, 10)}`;
+      sessionStorage.setItem("dv_device_id", id);
+    }
+    fetch("/api/registration-bonus", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: id }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.already_claimed && data.points > 0) {
+          awardPoints(data.points, "新規登録ボーナス", "milestone");
+        }
+        sessionStorage.setItem("dv_reg_bonus_claimed", "1");
+        setRegBonusClaimed(true);
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-dismiss toast after 2.8s
   useEffect(() => {
@@ -452,6 +480,21 @@ export default function MoreScreen() {
           <h2 style={{ fontSize: 20, fontWeight: 800, color: "#f0f2f5", margin: 0 }}>ポイント交換（予定）</h2>
         </div>
 
+        {/* Registration bonus banner (first visit) */}
+        {!regBonusClaimed && (
+          <div style={{ margin: "0 16px 12px", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" style={{ width: 18, height: 18 }}>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#22c55e" }}>新規登録ボーナスを確認中...</div>
+              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>初回利用の方に +20pt を進呈します</div>
+            </div>
+          </div>
+        )}
+
         {/* Hero card */}
         <div style={{ margin: "0 16px 16px" }}>
           <div style={{
@@ -502,6 +545,9 @@ export default function MoreScreen() {
             </div>
           </div>
         </div>
+
+        {/* Weekly missions */}
+        <MissionsSection onMissionComplete={(pts, label) => awardPoints(pts, label, "milestone")} />
 
         {/* Demo earn buttons */}
         <div style={{ margin: "0 16px 16px" }}>
