@@ -572,12 +572,12 @@ function GasPricePostModal({
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>施設情報（任意）</div>
 
-        {/* Opening hours */}
+        {/* Opening hours — single toggle button, no .map() */}
         <div>
           <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>営業時間</div>
           <div style={{ display: "flex", gap: 6 }}>
             <button
-              key="24h" type="button"
+              type="button"
               onClick={() => setOpeningHours(openingHours === "24時間営業" ? "" : "24時間営業")}
               style={{
                 padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
@@ -700,7 +700,7 @@ function CarPostModal({ onClose, onSubmitted }: { onClose: () => void; onSubmitt
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
           <button onClick={() => { onSubmitted(); }} style={{ padding: "14px", borderRadius: 12, background: "#a78bfa", color: "#0f1117", fontWeight: 700, fontSize: 15, border: "none", cursor: "pointer" }}>
-            投稿を見る
+            投稿���見る
           </button>
           <button onClick={() => { setSubmitted(false); setContent(""); setError(""); }} style={{ padding: "14px", borderRadius: 12, background: "#1e2235", color: "#9ca3af", fontWeight: 600, fontSize: 15, border: "1px solid #2a2f42", cursor: "pointer" }}>
             もう一度投稿
