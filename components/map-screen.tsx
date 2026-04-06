@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import DynamicMap from "@/components/dynamic-map";
 import type { FuelType, GasStation, PaSaSpot } from "@/lib/types";
 import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS } from "@/lib/types";
@@ -266,10 +266,9 @@ export default function MapScreen({ stations, onLocationFound, userLocation, isF
                 ? `${FUEL_TYPE_LABELS[(item as GasStation).fuel_type]}  ¥${Number((item as GasStation).price).toFixed(0)}`
                 : `${(item as PaSaSpot).type}  ${(item as PaSaSpot).highway}`;
               return (
-                <>
-                  {/* Inject a search ad after the 3rd result */}
-                  {i === 3 && <SearchAd key="search-ad" adIndex={1} />}
-                  <button key={item.id}
+                <React.Fragment key={String(item.id)}>
+                  {i === 3 && <SearchAd adIndex={1} />}
+                  <button
                     onClick={() => {
                       setFlyTo({ lat: item.latitude, lng: item.longitude, zoom: 15 });
                       closeSearch();
@@ -294,7 +293,7 @@ export default function MapScreen({ stations, onLocationFound, userLocation, isF
                       <path d="M9 18l6-6-6-6" strokeLinecap="round"/>
                     </svg>
                   </button>
-                </>
+                </React.Fragment>
               );
             })}
           </div>
