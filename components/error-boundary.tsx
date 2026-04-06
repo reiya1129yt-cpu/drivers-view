@@ -2,33 +2,8 @@
 
 import React from "react";
 
-const ROUTER_ERR = "Router action dispatched before initialization";
-
-// window.onerror does NOT catch errors thrown inside event listener callbacks.
-// A capturing "error" listener on window is the only reliable interception point.
-if (typeof window !== "undefined") {
-  window.addEventListener(
-    "error",
-    (e) => {
-      if (e.message?.includes(ROUTER_ERR)) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        setTimeout(() => window.location.reload(), 300);
-      }
-    },
-    true, // capture phase — fires before any bubble-phase or onerror handler
-  );
-  window.addEventListener("unhandledrejection", (e) => {
-    if ((e.reason?.message ?? "").includes(ROUTER_ERR)) {
-      e.preventDefault();
-      setTimeout(() => window.location.reload(), 300);
-    }
-  });
-}
-
 interface State {
   hasError: boolean;
-  isRouterError: boolean;
 }
 
 export default class ErrorBoundary extends React.Component<
@@ -37,28 +12,15 @@ export default class ErrorBoundary extends React.Component<
 > {
   constructor(props: { children: React.ReactNode }) {
     super(props);
-    this.state = { hasError: false, isRouterError: false };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    const isRouterError =
-      typeof error?.message === "string" &&
-      error.message.includes("Router action dispatched before initialization");
-    return { hasError: true, isRouterError };
-  }
-
-  componentDidCatch(error: Error) {
-    if (
-      typeof error?.message === "string" &&
-      error.message.includes("Router action dispatched before initialization")
-    ) {
-      // Auto-recover: reload the page after a brief delay
-      setTimeout(() => window.location.reload(), 300);
-    }
+  static getDerivedStateFromError(): State {
+    return { hasError: true };
   }
 
   render() {
-    if (this.state.hasError && !this.state.isRouterError) {
+    if (this.state.hasError) {
       return (
         <div
           style={{
@@ -97,7 +59,6 @@ export default class ErrorBoundary extends React.Component<
       );
     }
 
-    // For router init errors, render children anyway while reload is pending
     return this.props.children;
   }
 }
