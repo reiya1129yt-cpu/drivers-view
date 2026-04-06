@@ -576,9 +576,9 @@ function GasPricePostModal({
         <div>
           <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>営業時間</div>
           <div style={{ display: "flex", gap: 6 }}>
-            {["24時間営業", ""].map((preset, i) => (
+            {["24時間営業", ""].map((preset) => (
               <button
-                key={i} type="button"
+                key={preset || "__empty__"} type="button"
                 onClick={() => setOpeningHours(preset)}
                 style={{
                   padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
@@ -803,8 +803,17 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
   ];
 
   const visiblePosts = useMemo(() => {
+    // Deduplicate by id so React keys are always unique
+    const seen = new Set<string>();
+    const deduped = posts.filter((p: any) => {
+      const k = String(p.id);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
     // Guest restrictions: hide car posts from non-logged-in users
-    let base = posts.filter((p: any) => {
+    let base = deduped.filter((p: any) => {
       if (p.post_type === "car" && !isLoggedIn) return false;
       if (feedFilter !== "all" && p.post_type !== feedFilter) return false;
       return true;
@@ -990,7 +999,7 @@ export default function PostScreen({ userLocation: _userLocation, nearbyStations
         )}
 
         {!isLoading && !swrError && visiblePosts.length > 0 && visiblePosts.map((post: any, idx: number) => (
-          <React.Fragment key={`${post.id ?? idx}-${idx}`}>
+          <React.Fragment key={String(post.id)}>
             {idx > 0 && idx % 5 === 0 && (
               <FeedAdCard adIndex={Math.floor(idx / 5) - 1} />
             )}
