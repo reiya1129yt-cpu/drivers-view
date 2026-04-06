@@ -7,6 +7,7 @@ import MapScreen from "@/components/map-screen";
 import PostScreen from "@/components/post-screen";
 import MoreScreen from "@/components/more-screen";
 import AuthModal, { type GuestProfile } from "@/components/auth-modal";
+import GuestLoginPromo from "@/components/guest-login-promo";
 import { MOCK_STATIONS, generateNearbyStations } from "@/lib/mock-data";
 import { useFavorites } from "@/lib/use-favorites";
 import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS } from "@/lib/types";
@@ -193,6 +194,14 @@ export default function AppShell() {
           onClose={() => setShowAuthModal(false)}
           onGuestContinue={handleGuestContinue}
           onAuthSuccess={handleAuthSuccess}
+        />
+      )}
+
+      {/* Guest login promo — only for unauthenticated visitors, once per session */}
+      {!authUser && !showAuthModal && (
+        <GuestLoginPromo
+          onLogin={() => setShowAuthModal(true)}
+          onDismiss={() => {}}
         />
       )}
     </main>
