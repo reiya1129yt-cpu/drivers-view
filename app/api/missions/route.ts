@@ -115,15 +115,19 @@ export async function POST(req: NextRequest) {
         source: "mission",
       });
 
-      // Upsert user_points
-      await supabase.rpc("increment_user_points", { p_user_id: user_id, p_delta: pts })
-        .catch(() => {
-          // Fallback if RPC doesn't exist
-          return supabase.from("user_points").upsert(
-            { user_id, total_points: pts, updated_at: new Date().toISOString() },
-            { onConflict: "user_id" }
-          );
+      // Upsert user_points — try RPC first, fall back to manual upsert
+      try {
+        const { error: rpcError } = await supabase.rpc("increment_user_points", {
+          p_user_id: user_id,
+          p_delta: pts,
         });
+        if (rpcError) throw rpcError;
+      } catch {
+        await supabase.from("user_points").upsert(
+          { user_id, total_points: pts, updated_at: new Date().toISOString() },
+          { onConflict: "user_id" }
+        );
+      }
     }
   }
 
