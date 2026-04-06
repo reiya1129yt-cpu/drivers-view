@@ -9,6 +9,9 @@ const notoSansJP = Noto_Sans_JP({
   display: "swap",
 });
 
+// Force static so HMR env-var reloads never trigger an RSC dispatch.
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Drivers View - ガソリン価格マップ",
   description: "近くのガソリンスタンドの価格をリアルタイムで確認・投稿できるアプリ",
