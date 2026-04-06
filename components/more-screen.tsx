@@ -114,7 +114,68 @@ const LANG_OPTIONS: { code: Lang; nativeName: string; flag: string }[] = [
   { code: "zh", nativeName: "中文",    flag: "🇨🇳" },
 ];
 
-type Section = "main" | "notifications" | "language";
+// ── Points data ───────────────────────────────────────────────────────────────
+const MOCK_POINTS = 120;
+
+const POINT_HISTORY = [
+  { id: 1, label: "投稿ボーナス",       delta: +5,  time: "今日 10:23",   icon: "post" },
+  { id: 2, label: "いいね獲得",         delta: +1,  time: "今日 08:47",   icon: "like" },
+  { id: 3, label: "投稿ボーナス",       delta: +5,  time: "昨日 19:04",   icon: "post" },
+  { id: 4, label: "いいね獲得",         delta: +1,  time: "昨日 14:12",   icon: "like" },
+  { id: 5, label: "いいね獲得",         delta: +1,  time: "2日前",         icon: "like" },
+  { id: 6, label: "投稿ボーナス",       delta: +5,  time: "3日前",         icon: "post" },
+];
+
+const REWARD_CARDS = [
+  {
+    id: "gas",
+    title: "ガソリン割引",
+    desc: "次回給油時に使える割引クーポン",
+    pts: 500,
+    color: "#f59e0b",
+    bg: "rgba(245,158,11,0.12)",
+    border: "rgba(245,158,11,0.3)",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4"/>
+        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+        <path d="M7 13l-1.4-7"/>
+      </svg>
+    ),
+  },
+  {
+    id: "coupon",
+    title: "クーポン",
+    desc: "提携店舗で使えるお得なクーポン",
+    pts: 300,
+    color: "#22c55e",
+    bg: "rgba(34,197,94,0.12)",
+    border: "rgba(34,197,94,0.3)",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+      </svg>
+    ),
+  },
+  {
+    id: "gift",
+    title: "ギフトカード",
+    desc: "各種ギフトカードに交換できます",
+    pts: 1000,
+    color: "#a78bfa",
+    bg: "rgba(167,139,250,0.12)",
+    border: "rgba(167,139,250,0.3)",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/>
+        <path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
+        <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
+      </svg>
+    ),
+  },
+] as const;
+
+type Section = "main" | "notifications" | "language" | "points";
 
 // ── Row helper ────────────────────────────────────────────────────────────────
 function SettingsRow({ icon, label, sub, onClick, right }: {
@@ -249,6 +310,150 @@ export default function MoreScreen() {
     );
   }
 
+  // ── Points sub-page ──────────────────────────────────────────────────────
+  if (section === "points") {
+    const progressPct = Math.min((MOCK_POINTS / 500) * 100, 100);
+    return (
+      <div style={{ height: "100%", background: "#0f1117", overflowY: "auto" }}>
+        {/* Back header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 16px 12px" }}>
+          <button onClick={() => setSection("main")} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", padding: 4 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ width: 22, height: 22 }}><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: "#f0f2f5", margin: 0 }}>ポイント交換（予定）</h2>
+        </div>
+
+        {/* Current points hero card */}
+        <div style={{ margin: "0 16px 20px" }}>
+          <div style={{
+            background: "linear-gradient(135deg, #1a1d27 0%, #1e2235 100%)",
+            borderRadius: 20, padding: "24px 22px", border: "1px solid #2a2f42",
+            position: "relative", overflow: "hidden",
+          }}>
+            {/* Decorative ring */}
+            <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)" }} />
+            <div style={{ position: "absolute", top: -10, right: -10, width: 70, height: 70, borderRadius: "50%", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.18)" }} />
+
+            <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 6 }}>保有ポイント</div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, marginBottom: 16 }}>
+              <span style={{ fontSize: 48, fontWeight: 900, color: "#22c55e", lineHeight: 1 }}>{MOCK_POINTS}</span>
+              <span style={{ fontSize: 20, fontWeight: 700, color: "#22c55e", marginBottom: 6 }}>pt</span>
+            </div>
+
+            {/* Progress to next reward */}
+            <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 6 }}>次の特典まで：{500 - MOCK_POINTS}pt</div>
+            <div style={{ height: 6, borderRadius: 999, background: "#2a2f42", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${progressPct}%`, background: "linear-gradient(90deg, #22c55e, #16a34a)", borderRadius: 999, transition: "width 0.4s" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+              <span style={{ fontSize: 10, color: "#4b5563" }}>0pt</span>
+              <span style={{ fontSize: 10, color: "#4b5563" }}>500pt</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Development notice banner */}
+        <div style={{ margin: "0 16px 20px", background: "rgba(59,130,246,0.10)", border: "1px solid rgba(59,130,246,0.28)", borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" style={{ width: 18, height: 18, flexShrink: 0, marginTop: 1 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 3 }}>現在ポイント交換機能は開発中です</div>
+            <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.6 }}>
+              今後、ガソリン割引・クーポン・ギフト交換などに対応予定です。
+            </div>
+          </div>
+        </div>
+
+        {/* Reward cards */}
+        <div style={{ padding: "0 16px 4px" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>交換できる特典（予定）</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {REWARD_CARDS.map((r) => {
+              const canRedeem = MOCK_POINTS >= r.pts;
+              return (
+                <div key={r.id} style={{
+                  background: r.bg, border: `1px solid ${r.border}`,
+                  borderRadius: 16, padding: "16px 16px", display: "flex", alignItems: "center", gap: 14,
+                  opacity: canRedeem ? 1 : 0.6,
+                }}>
+                  <div style={{
+                    width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                    background: `${r.color}18`, border: `1.5px solid ${r.border}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: r.color,
+                  }}>
+                    {r.icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#f0f2f5", marginBottom: 3 }}>{r.title}</div>
+                    <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.4 }}>{r.desc}</div>
+                    <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: r.color }}>{r.pts.toLocaleString()}pt</span>
+                      {canRedeem
+                        ? <span style={{ fontSize: 10, color: r.color, background: `${r.color}18`, border: `1px solid ${r.border}`, borderRadius: 999, padding: "1px 7px", fontWeight: 600 }}>交換可能</span>
+                        : <span style={{ fontSize: 10, color: "#4b5563" }}>あと{(r.pts - MOCK_POINTS).toLocaleString()}pt</span>
+                      }
+                    </div>
+                  </div>
+                  <button style={{
+                    padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, border: "none", cursor: "not-allowed",
+                    background: canRedeem ? r.color : "#2a2f42",
+                    color: canRedeem ? "#0f1117" : "#4b5563",
+                    flexShrink: 0,
+                  }}>
+                    交換
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Point history */}
+        <div style={{ padding: "20px 16px 4px" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>ポイント履歴</div>
+          <div style={{ background: "#1a1d27", borderRadius: 16, border: "1px solid #2a2f42", overflow: "hidden" }}>
+            {POINT_HISTORY.map((h, i) => {
+              const isPost = h.icon === "post";
+              const accentColor = isPost ? "#22c55e" : "#f59e0b";
+              return (
+                <div key={h.id} style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "13px 16px",
+                  borderBottom: i < POINT_HISTORY.length - 1 ? "1px solid #2a2f42" : "none",
+                }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                    background: `${accentColor}18`, border: `1.5px solid ${accentColor}33`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: accentColor,
+                  }}>
+                    {isPost ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: 15, height: 15 }}>
+                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: 15, height: 15 }}>
+                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                      </svg>
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, color: "#f0f2f5", fontWeight: 500 }}>{h.label}</div>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{h.time}</div>
+                  </div>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: accentColor }}>+{h.delta}pt</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ height: 48 }} />
+      </div>
+    );
+  }
+
   // ── Main section ──────────────────────────────────────────────────────────
   return (
     <div style={{ height: "100%", background: "#0f1117", overflowY: "auto" }}>
@@ -268,6 +473,27 @@ export default function MoreScreen() {
             </div>
             <button style={{ padding: "8px 16px", borderRadius: 999, background: "#22c55e", color: "#0f1117", fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer" }}>{t.login}</button>
           </div>
+          {/* Points summary strip */}
+          <div style={{ borderTop: "1px solid #2a2f42", margin: "0 16px" }} />
+          <button onClick={() => setSection("points")} style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 12,
+            padding: "13px 18px", background: "none", border: "none", cursor: "pointer",
+          }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 17, height: 17 }}>
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <div style={{ fontSize: 14, color: "#f0f2f5", fontWeight: 600 }}>ポイント</div>
+              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>ポイント交換・履歴を見る</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 18, fontWeight: 900, color: "#22c55e" }}>{MOCK_POINTS}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#22c55e", marginRight: 2 }}>pt</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="2" strokeLinecap="round" style={{ width: 16, height: 16 }}><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          </button>
         </Card>
       </div>
 
