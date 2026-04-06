@@ -149,7 +149,7 @@ function PriceDisplay({ post, color }: { post: any; color: string }) {
   );
 }
 
-// ── Post cards ────────────────────────────────────────────────────────────────
+// ── Post cards ── keyed lists fixed ──────────────────────────────────────────
 
 function GasPricePostCard({ post, isLoggedIn }: { post: any; isLoggedIn: boolean }) {
   const [liked, setLiked] = useState(false);
