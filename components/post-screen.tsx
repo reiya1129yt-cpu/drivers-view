@@ -576,21 +576,18 @@ function GasPricePostModal({
         <div>
           <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>営業時間</div>
           <div style={{ display: "flex", gap: 6 }}>
-            {["24時間営業", ""].map((preset, i) => (
-              <button
-                key={preset || "__empty__"} type="button"
-                onClick={() => setOpeningHours(preset)}
-                style={{
-                  padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                  border: `1.5px solid ${openingHours === preset && preset !== "" ? "#22c55e" : "#2a2f42"}`,
-                  background: openingHours === preset && preset !== "" ? "#22c55e22" : "#22263a",
-                  color: openingHours === preset && preset !== "" ? "#22c55e" : "#6b7280",
-                  display: i === 0 ? "block" : "none",
-                }}
-              >
-                24時間営業
-              </button>
-            ))}
+            <button
+              key="24h" type="button"
+              onClick={() => setOpeningHours(openingHours === "24時間営業" ? "" : "24時間営業")}
+              style={{
+                padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                border: `1.5px solid ${openingHours === "24時間営業" ? "#22c55e" : "#2a2f42"}`,
+                background: openingHours === "24時間営業" ? "#22c55e22" : "#22263a",
+                color: openingHours === "24時間営業" ? "#22c55e" : "#6b7280",
+              }}
+            >
+              24時間営業
+            </button>
             <input
               type="text"
               value={openingHours}
