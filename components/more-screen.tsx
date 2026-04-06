@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import MissionsSection from "@/components/missions-section";
+import PremiumSection from "@/components/premium-section";
 
 // ── i18n strings (3 languages) ────────────────────────────────────────────────
 const I18N = {
@@ -706,6 +707,15 @@ export default function MoreScreen({ isLoggedIn = false, isGuest = false, authUs
           </button>
         </Card>
       </div>
+
+      {/* Premium membership */}
+      <PremiumSection
+        isPremium={false}
+        onSubscribe={() => {
+          // TODO: wire Stripe or payment flow
+          alert("プレミアム登録機能は近日公開予定です");
+        }}
+      />
 
       {/* AI Prediction — login required */}
       <SectionHeader label={t.aiTitle} />
