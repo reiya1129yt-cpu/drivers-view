@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { LeafletMapProps } from "@/components/leaflet-map";
+import type { LeafletMapProps, MapBounds } from "@/components/leaflet-map";
+export type { MapBounds };
 
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
   ssr: false,

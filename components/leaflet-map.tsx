@@ -78,7 +78,25 @@ function buildPaSaSVG(spot: PaSaSpot): string {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
+// Grey pin for stations with no price
+function buildGreyPinSVG(): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 52" width="40" height="52">
+  <defs><filter id="gds" x="-40%" y="-20%" width="180%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.5)"/></filter></defs>
+  <g filter="url(#gds)">
+    <path d="M20 4C11 4 5 10 5 17C5 28 20 46 20 46C20 46 35 28 35 17C35 10 29 4 20 4Z" fill="#1e2235" stroke="#4b5563" stroke-width="2"/>
+    <circle cx="20" cy="17" r="6" fill="none" stroke="#4b5563" stroke-width="1.8"/>
+    <text x="20" y="20" text-anchor="middle" font-family="system-ui,sans-serif" font-size="7" font-weight="700" fill="#6b7280">?</text>
+  </g>
+</svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 function makeStationIcon(L: any, station: GasStation) {
+  // No price yet — show a small grey pin
+  if (station.has_price === false) {
+    const url = buildGreyPinSVG();
+    return L.icon({ iconUrl: url, iconSize: [40, 52], iconAnchor: [20, 50], popupAnchor: [0, -52] });
+  }
   const color     = FUEL_TYPE_COLORS[station.fuel_type] ?? "#ef4444";
   const label     = FUEL_TYPE_LABELS[station.fuel_type] ?? "";
   const price     = Number(station.price).toFixed(0);
@@ -119,9 +137,12 @@ function renderStationMarkers(
       month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
     });
 
-    const userBadge = station.has_user_price
-      ? `<span style="display:inline-block;background:#22c55e22;color:#22c55e;border:1px solid #22c55e55;border-radius:6px;font-size:10px;font-weight:700;padding:1px 7px;margin-bottom:6px;">ユーザー投稿価格</span><br/>`
-      : "";
+    const noPrice = station.has_price === false;
+    const userBadge = noPrice
+      ? `<span style="display:inline-block;background:#4b556322;color:#9ca3af;border:1px solid #4b556355;border-radius:6px;font-size:10px;font-weight:700;padding:1px 7px;margin-bottom:6px;">価格未登録</span><br/>`
+      : station.has_user_price
+        ? `<span style="display:inline-block;background:#22c55e22;color:#22c55e;border:1px solid #22c55e55;border-radius:6px;font-size:10px;font-weight:700;padding:1px 7px;margin-bottom:6px;">ユーザー投稿価格</span><br/>`
+        : "";
 
     const favBtnStyle = `display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:${canFav ? "pointer" : "not-allowed"};border:1.5px solid ${isFav ? "#f59e0b" : "#2a2f42"};background:${isFav ? "#f59e0b22" : "#22263a"};color:${isFav ? "#f59e0b" : canFav ? "#9ca3af" : "#4b5563"};width:100%;justify-content:center;`;
     const favBtnLabel = isFav ? "お気に入り済み" : canFav ? "お気に入りに追加" : "上限（3件）";
@@ -132,8 +153,10 @@ function renderStationMarkers(
         ${userBadge}
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
           <span style="background:${bg};color:${color};padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid ${color}55;">${label}</span>
-          <span style="font-size:22px;font-weight:900;color:${color};">&#165;${Number(station.price).toFixed(0)}</span>
-          <span style="font-size:12px;color:#6b7280;">${unit}</span>
+          ${noPrice
+            ? `<span style="font-size:16px;font-weight:700;color:#6b7280;">価格情報なし</span>`
+            : `<span style="font-size:22px;font-weight:900;color:${color};">&#165;${Number(station.price).toFixed(0)}</span><span style="font-size:12px;color:#6b7280;">${unit}</span>`
+          }
         </div>
         ${station.comment ? `<div style="font-size:12px;color:#9ca3af;background:#1a1d2a;padding:6px 8px;border-radius:8px;margin-bottom:6px;">&ldquo;${station.comment}&rdquo;</div>` : ""}
         <!-- Facility row: opening hours + car wash -->
@@ -206,12 +229,19 @@ function renderPaSaMarkers(
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+export interface MapBounds {
+  center: { lat: number; lng: number };
+  bounds: { north: number; south: number; east: number; west: number };
+  zoom: number;
+}
+
 export interface LeafletMapProps {
   center?: [number, number];
   zoom?: number;
   stations: GasStation[];
   pasaSpots?: PaSaSpot[];
   onLocationFound: (latlng: { lat: number; lng: number }) => void;
+  onMapMove?: (bounds: MapBounds) => void;
   flyTo?: { lat: number; lng: number; zoom?: number } | null;
   userLocation?: { lat: number; lng: number } | null;
   isFavorite?: (id: string) => boolean;
@@ -225,6 +255,7 @@ export default function LeafletMap({
   stations,
   pasaSpots = [],
   onLocationFound,
+  onMapMove,
   flyTo,
   userLocation,
   isFavorite,
@@ -239,6 +270,8 @@ export default function LeafletMap({
   const userMarkerRef      = useRef<any>(null);
   const onLocationFoundRef = useRef(onLocationFound);
   onLocationFoundRef.current = onLocationFound;
+  const onMapMoveRef = useRef(onMapMove);
+  onMapMoveRef.current = onMapMove;
 
   const [mapReady, setMapReady] = useState(false);
 
@@ -297,6 +330,22 @@ export default function LeafletMap({
       window.addEventListener("resize", onResize);
       setTimeout(() => { try { map.invalidateSize(); } catch {} }, 300);
       (map as any)._resizeCleanup = () => window.removeEventListener("resize", onResize);
+
+      // Fire onMapMove on map moveend (pan/zoom)
+      const fireBounds = () => {
+        if (!mapRef.current || !onMapMoveRef.current) return;
+        const c = mapRef.current.getCenter();
+        const b = mapRef.current.getBounds();
+        const z = mapRef.current.getZoom();
+        onMapMoveRef.current({
+          center: { lat: c.lat, lng: c.lng },
+          bounds: { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() },
+          zoom: z,
+        });
+      };
+      map.on("moveend", fireBounds);
+      // Initial fire after map is ready
+      setTimeout(fireBounds, 400);
 
       setMapReady(true);  // triggers markers effect
     });

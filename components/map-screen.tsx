@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import DynamicMap from "@/components/dynamic-map";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import DynamicMap, { type MapBounds } from "@/components/dynamic-map";
 import type { FuelType, GasStation, PaSaSpot } from "@/lib/types";
+import useSWR from "swr";
 import { FUEL_TYPE_LABELS, FUEL_TYPE_COLORS } from "@/lib/types";
 import { MOCK_STATIONS, MOCK_PASA } from "@/lib/mock-data"; // v2
 import { BannerAd, SearchAd } from "@/components/ad-card";
@@ -39,19 +40,69 @@ async function geocodePlace(query: string): Promise<{ lat: number; lng: number }
   return null;
 }
 
+// Fetcher for OSM stations API
+const osmFetcher = (url: string) => fetch(url).then(r => r.json());
+
 export default function MapScreen({ stations, onLocationFound, userLocation, isFavorite, canAddFavorite, onToggleFavorite }: MapScreenProps) {
   const [selectedFuel, setSelectedFuel]     = useState<FilterType>("all");
   const [searchQuery, setSearchQuery]       = useState("");
   const [searchOpen, setSearchOpen]         = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const [locating, setLocating]             = useState(false);
-  const [locationError, setLocationError]   = useState("");
   const [searchCategory, setSearchCategory] = useState<"station" | "price" | "region" | "pasa">("station");
   const [flyTo, setFlyTo]               = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [searching, setSearching]       = useState(false);
   const [searchResults, setSearchResults] = useState<(GasStation | PaSaSpot)[]>([]);
   const [searchError, setSearchError]   = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // OSM stations: track map center/bounds
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced map move handler
+  const handleMapMove = useCallback((bounds: MapBounds) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setMapCenter(bounds.center);
+    }, 400); // 400ms debounce
+  }, []);
+
+  // Build SWR key for OSM fetch — only when we have a center
+  const osmKey = mapCenter
+    ? `/api/osm-stations?lat=${mapCenter.lat.toFixed(5)}&lng=${mapCenter.lng.toFixed(5)}&radius=5000`
+    : null;
+
+  const { data: osmData, error: osmError, isLoading: osmLoading } = useSWR(osmKey, osmFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000, // don't refetch same area for 30s
+  });
+
+  const osmStations: GasStation[] = osmData?.stations ?? [];
+
+  // Merge: user-posted stations overlay on OSM stations
+  const mergedStations = useMemo(() => {
+    // Index user posts by lat/lng for quick lookup
+    const userPostMap = new Map<string, GasStation>();
+    stations.forEach((s) => {
+      const key = `${s.latitude.toFixed(4)}_${s.longitude.toFixed(4)}`;
+      userPostMap.set(key, s);
+    });
+
+    // Mark user-posted stations with has_price=true (they already have it)
+    const userPosted = stations.map(s => ({ ...s, has_price: true, has_user_price: true }));
+
+    // Filter OSM stations — exclude if a user post is within ~100m
+    const osmOnly = osmStations.filter((osm) => {
+      const key = `${osm.latitude.toFixed(4)}_${osm.longitude.toFixed(4)}`;
+      return !userPostMap.has(key);
+    });
+
+    // User-posted first (priority), then OSM stations
+    const combined = [...userPosted, ...osmOnly];
+
+    // Limit to 100 stations for performance
+    return combined.slice(0, 100);
+  }, [stations, osmStations]);
 
   const SEARCH_CATS = [
     { id: "station" as const, label: "スタンド名" },
@@ -60,7 +111,8 @@ export default function MapScreen({ stations, onLocationFound, userLocation, isF
     { id: "pasa"    as const, label: "PA / SA" },
   ];
 
-  const allStations: GasStation[] = stations.length > 0 ? stations : MOCK_STATIONS;
+  // Use merged OSM + user-posted stations; fallback to mock if nothing
+  const allStations: GasStation[] = mergedStations.length > 0 ? mergedStations : MOCK_STATIONS;
   const allPaSa: PaSaSpot[]       = MOCK_PASA;
 
   const showPaSa      = selectedFuel === "pasa" || selectedFuel === "all";
@@ -315,12 +367,45 @@ export default function MapScreen({ stations, onLocationFound, userLocation, isF
           stations={filteredStations}
           pasaSpots={filteredPaSa}
           onLocationFound={onLocationFound}
+          onMapMove={handleMapMove}
           flyTo={flyTo}
           userLocation={userLocation}
           isFavorite={isFavorite}
           canAddFavorite={canAddFavorite}
           onToggleFavorite={onToggleFavorite}
         />
+        {/* OSM loading indicator */}
+        {osmLoading && (
+          <div style={{
+            position: "absolute", top: 72, left: "50%", transform: "translateX(-50%)", zIndex: 1001,
+            background: "#1e2235", border: "1px solid #2a2f42", borderRadius: 999,
+            padding: "6px 14px", display: "flex", alignItems: "center", gap: 8,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+          }}>
+            <svg style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="#2a2f42" strokeWidth="3"/>
+              <path d="M4 12a8 8 0 018-8" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontSize: 12, color: "#9ca3af" }}>周辺スタンドを取得中...</span>
+          </div>
+        )}
+        {/* OSM error — show retry */}
+        {osmError && !osmLoading && (
+          <div style={{
+            position: "absolute", top: 72, left: "50%", transform: "translateX(-50%)", zIndex: 1001,
+            background: "#1e2235", border: "1px solid #ef444455", borderRadius: 10,
+            padding: "8px 14px", display: "flex", alignItems: "center", gap: 10,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+          }}>
+            <span style={{ fontSize: 12, color: "#f87171" }}>取得に失敗しました</span>
+            <button
+              onClick={() => setMapCenter(c => c ? { ...c } : c)}
+              style={{ padding: "4px 10px", borderRadius: 6, background: "#ef444422", border: "1px solid #ef444455", color: "#f87171", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+            >
+              再試行
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
