@@ -1,0 +1,27 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import type { LeafletMapProps, MapBounds } from "@/components/leaflet-map";
+export type { MapBounds };
+
+const LeafletMap = dynamic(() => import("./leaflet-map"), {
+  ssr: false,
+  loading: () => (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "center",
+      background: "#0f1117", width: "100%", height: "100%",
+    }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, color: "#6b7280" }}>
+        <svg style={{ width: 32, height: 32, animation: "spin 1s linear infinite" }} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="#2a2f42" strokeWidth="4" />
+          <path d="M4 12a8 8 0 018-8" stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
+        </svg>
+        <span style={{ fontSize: 14 }}>マップを読み込み中...</span>
+      </div>
+    </div>
+  ),
+});
+
+export default function DynamicMap(props: LeafletMapProps) {
+  return <LeafletMap {...props} />;
+}

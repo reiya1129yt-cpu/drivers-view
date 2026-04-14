@@ -1,0 +1,28 @@
+{
+  "name": "Drivers View",
+  "short_name": "DriversView",
+  "description": "近くのガソリンスタンドの価格をリアルタイムで確認・投稿できるアプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/icon-192.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["navigation", "utilities"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
