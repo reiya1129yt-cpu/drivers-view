@@ -1,24 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --primary: #0ea5e9;
+  /* Dark Navy Theme - Always Dark */
+  --background: #0a1628;
+  --foreground: #f1f5f9;
+  --card: #111d32;
+  --card-foreground: #f1f5f9;
+  --primary: #22c55e;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #f97316;
+  --secondary: #1a2a42;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1a2a42;
+  --muted-foreground: #94a3b8;
+  --accent: #22c55e;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0ea5e9;
-  --radius: 0.5rem;
+  --border: #1e3a5f;
+  --input: #1a2a42;
+  --ring: #22c55e;
+  --radius: 0.75rem;
   
   /* Place type colors */
   --gas-station: #ef4444;
@@ -48,28 +49,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
-    --card: #1e293b;
-    --card-foreground: #f8fafc;
-    --primary: #38bdf8;
-    --primary-foreground: #0f172a;
-    --secondary: #334155;
-    --secondary-foreground: #f8fafc;
-    --muted: #334155;
-    --muted-foreground: #94a3b8;
-    --accent: #fb923c;
-    --accent-foreground: #0f172a;
-    --destructive: #f87171;
-    --destructive-foreground: #0f172a;
-    --border: #334155;
-    --input: #334155;
-    --ring: #38bdf8;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -86,10 +65,16 @@ body {
 .leaflet-popup-content-wrapper {
   border-radius: var(--radius);
   padding: 0;
+  background: var(--card);
+  color: var(--card-foreground);
 }
 
 .leaflet-popup-content {
   margin: 0;
+}
+
+.leaflet-popup-tip {
+  background: var(--card);
 }
 
 .custom-marker {
@@ -122,4 +107,10 @@ body {
 
 .safe-area-pt {
   padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Ad banner placeholder */
+.ad-banner {
+  background: linear-gradient(135deg, #1a2a42 0%, #111d32 100%);
+  border: 1px dashed var(--border);
 }

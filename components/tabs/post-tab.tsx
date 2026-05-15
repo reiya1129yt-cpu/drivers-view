@@ -184,14 +184,14 @@ export default function PostTab({
         </div>
 
         {submitSuccess && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-100 p-3 text-green-800">
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-500/20 border border-green-500/30 p-3 text-green-400">
             <Check className="h-5 w-5" />
             <span>価格を投稿しました！10ポイント獲得</span>
           </div>
         )}
 
         {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-100 p-3 text-red-800">
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-500/20 border border-red-500/30 p-3 text-red-400">
             <AlertCircle className="h-5 w-5" />
             <span>{error}</span>
           </div>

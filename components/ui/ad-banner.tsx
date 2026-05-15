@@ -9,17 +9,17 @@ export default function AdBanner({ placement = "inline", className = "" }: AdBan
   // This is a placeholder for actual ad integration (e.g., Google AdSense, AdMob)
   // In production, replace with actual ad SDK
   
-  const baseStyles = "bg-secondary/50 border border-dashed border-border rounded-lg flex items-center justify-center text-muted-foreground text-sm";
+  const baseStyles = "ad-banner rounded-lg flex items-center justify-center text-muted-foreground text-xs";
   
   const heightStyles = {
-    top: "h-12",
-    bottom: "h-12",
-    inline: "h-20",
+    top: "h-10",
+    bottom: "h-10",
+    inline: "h-16",
   };
 
   return (
     <div className={`${baseStyles} ${heightStyles[placement]} ${className}`}>
-      <span>広告スペース</span>
+      <span>広告</span>
     </div>
   );
 }

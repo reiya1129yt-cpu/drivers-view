@@ -28,7 +28,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0ea5e9",
+  themeColor: "#0a1628",
 };
 
 export default function RootLayout({
@@ -37,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`${notoSansJP.variable} h-full bg-background`}>
+    <html lang="ja" className={`${notoSansJP.variable} h-full bg-background dark`}>
       <head>
         <link
           rel="stylesheet"

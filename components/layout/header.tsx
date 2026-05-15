@@ -22,13 +22,10 @@ export default function Header({ user, profile }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-      <div className="flex h-14 items-center justify-between px-4">
+    <header className="sticky top-0 z-40 border-b border-border bg-card">
+      <div className="flex h-12 items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-lg">🚗</span>
-          </div>
-          <h1 className="font-bold text-card-foreground">
+          <h1 className="text-lg font-bold text-primary">
             Driver&apos;s View
           </h1>
         </div>

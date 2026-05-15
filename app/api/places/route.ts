@@ -80,7 +80,7 @@ function buildOverpassQuery(
   return `[out:json][timeout:25];(${queries.join("")});out center;`;
 }
 
-// Fetch places from Overpass API
+// Fetch places from Overpass API with fallback endpoints
 async function fetchFromOverpass(
   south: number,
   west: number,
@@ -90,21 +90,30 @@ async function fetchFromOverpass(
 ): Promise<PlaceWithPrices[]> {
   const query = buildOverpassQuery(south, west, north, east, types);
   
-  try {
-    const response = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: `data=${encodeURIComponent(query)}`,
-    });
-    
-    if (!response.ok) {
-      console.error("Overpass API error:", response.status);
-      return [];
-    }
-    
-    const data: OverpassResponse = await response.json();
+  // Try multiple Overpass API endpoints
+  const endpoints = [
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "https://overpass-api.de/api/interpreter",
+  ];
+  
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "DriversView/1.0",
+        },
+        body: `data=${encodeURIComponent(query)}`,
+      });
+      
+      if (!response.ok) {
+        console.error(`Overpass API error from ${endpoint}:`, response.status);
+        continue; // Try next endpoint
+      }
+      
+      const data: OverpassResponse = await response.json();
     
     return data.elements
       .map((element) => {
@@ -137,10 +146,14 @@ async function fetchFromOverpass(
         } as PlaceWithPrices;
       })
       .filter((place): place is PlaceWithPrices => place !== null);
-  } catch (error) {
-    console.error("Overpass fetch error:", error);
-    return [];
+    } catch (error) {
+      console.error(`Overpass fetch error from ${endpoint}:`, error);
+      continue; // Try next endpoint
+    }
   }
+  
+  // All endpoints failed
+  return [];
 }
 
 export async function GET(request: Request) {

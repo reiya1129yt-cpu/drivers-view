@@ -17,22 +17,22 @@ const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
 
 export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-area-pb">
-      <div className="flex h-16 items-center justify-around">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm safe-area-pb">
+      <div className="flex h-14 items-center justify-around">
         {tabs.map(({ id, label, icon }) => {
           const isActive = activeTab === id;
           return (
             <button
               key={id}
               onClick={() => onTabChange(id)}
-              className={`flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors ${
+              className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 transition-colors ${
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {icon}
-              <span className="text-xs font-medium">{label}</span>
+              <span className="text-[10px] font-medium">{label}</span>
             </button>
           );
         })}

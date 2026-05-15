@@ -20,19 +20,19 @@ const filters: { type: PlaceType; label: string; icon: React.ReactNode }[] = [
 
 const typeColors: Record<PlaceType, { active: string; inactive: string }> = {
   gas_station: {
-    active: "bg-red-500 text-white border-red-500",
+    active: "bg-red-500 text-white border-red-500 shadow-lg shadow-red-500/30",
     inactive:
-      "bg-card text-card-foreground border-border hover:border-red-300",
+      "bg-card/80 text-card-foreground border-border hover:bg-card",
   },
   pa_sa: {
-    active: "bg-green-500 text-white border-green-500",
+    active: "bg-green-500 text-white border-green-500 shadow-lg shadow-green-500/30",
     inactive:
-      "bg-card text-card-foreground border-border hover:border-green-300",
+      "bg-card/80 text-card-foreground border-border hover:bg-card",
   },
   ev_charging: {
-    active: "bg-blue-500 text-white border-blue-500",
+    active: "bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/30",
     inactive:
-      "bg-card text-card-foreground border-border hover:border-blue-300",
+      "bg-card/80 text-card-foreground border-border hover:bg-card",
   },
 };
 

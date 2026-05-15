@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import Header from "@/components/layout/header";
 import BottomNav, { TabType } from "@/components/layout/bottom-nav";
 import FilterBar from "@/components/ui/filter-bar";
+import AdBanner from "@/components/ui/ad-banner";
 import PlaceList from "@/components/place/place-list";
 import PlaceDetail from "@/components/place/place-detail";
 import PostTab from "@/components/tabs/post-tab";
@@ -179,7 +180,7 @@ export default function Home() {
       <Header user={user} profile={profile} />
 
       {/* Main Content Area */}
-      <div className="relative flex-1 pb-16">
+      <div className="relative flex-1 pb-14">
         {activeTab === "map" && (
           <>
             {/* Filter Controls at Top */}
@@ -202,7 +203,7 @@ export default function Home() {
             <button
               onClick={getUserLocation}
               disabled={isLocating}
-              className="absolute bottom-36 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-card shadow-lg border border-border transition-colors hover:bg-secondary disabled:opacity-50"
+              className="absolute bottom-48 right-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-card shadow-lg border border-border transition-colors hover:bg-secondary disabled:opacity-50"
               title="現在地を取得"
             >
               {isLocating ? (
@@ -211,6 +212,11 @@ export default function Home() {
                 <MapPin className="h-5 w-5 text-primary" />
               )}
             </button>
+
+            {/* Ad Banner above place list */}
+            <div className="absolute bottom-[8.5rem] left-3 right-3 z-20">
+              <AdBanner placement="bottom" />
+            </div>
 
             {/* Place List */}
             <PlaceList
