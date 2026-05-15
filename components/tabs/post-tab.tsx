@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Fuel, Search, MapPin, Check, AlertCircle } from "lucide-react";
-import type { PlaceWithPrices, Profile, FuelType } from "@/lib/types";
+import { useState, useEffect } from "react";
+import { Plus, Search, Heart, MessageSquare, ShoppingCart } from "lucide-react";
+import type { PlaceWithPrices, Profile, FuelType, PricePost } from "@/lib/types";
 import { FUEL_TYPE_LABELS } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import AdBanner from "@/components/ui/ad-banner";
@@ -13,25 +13,20 @@ interface PostTabProps {
   places: PlaceWithPrices[];
   userLocation: [number, number];
   onPricePosted?: () => void;
+  onOpenPostForm?: () => void;
 }
 
-function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+type TabType = "all" | "price" | "car";
+type SortType = "new" | "likes" | "views";
+
+interface PostWithDetails extends PricePost {
+  place?: {
+    name: string;
+    brand: string | null;
+  };
+  profile?: {
+    display_name: string | null;
+  };
 }
 
 export default function PostTab({
@@ -40,293 +35,232 @@ export default function PostTab({
   places,
   userLocation,
   onPricePosted,
+  onOpenPostForm,
 }: PostTabProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStation, setSelectedStation] = useState<PlaceWithPrices | null>(null);
-  const [selectedFuelType, setSelectedFuelType] = useState<FuelType>("regular");
-  const [price, setPrice] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [sortBy, setSortBy] = useState<SortType>("new");
+  const [posts, setPosts] = useState<PostWithDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showPostForm, setShowPostForm] = useState(false);
 
-  // Filter gas stations only
-  const gasStations = places
-    .filter((p) => p.place_type === "gas_station")
-    .map((p) => ({
-      ...p,
-      distance: calculateDistance(
-        userLocation[0],
-        userLocation[1],
-        p.latitude,
-        p.longitude
-      ),
-    }))
-    .sort((a, b) => a.distance - b.distance);
-
-  // Filter by search query
-  const filteredStations = searchQuery
-    ? gasStations.filter(
-        (s) =>
-          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (s.brand && s.brand.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : gasStations.slice(0, 10);
-
-  const formatDistance = (meters: number) => {
-    if (meters < 1000) return `${Math.round(meters)}m`;
-    return `${(meters / 1000).toFixed(1)}km`;
-  };
-
-  const handleSubmit = async () => {
-    if (!user || !selectedStation || !price) return;
-
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
+  // Fetch recent posts
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setIsLoading(true);
       const supabase = createClient();
       
-      // Check if place exists in our database, if not, create it
-      let placeId = selectedStation.id;
-      
-      if (selectedStation.id.startsWith("osm-")) {
-        // This is an OSM place, we need to insert it first
-        const { data: existingPlace } = await supabase
-          .from("places")
-          .select("id")
-          .eq("osm_id", selectedStation.osm_id)
-          .single();
+      const { data, error } = await supabase
+        .from("price_posts")
+        .select(`
+          *,
+          place:places(name, brand),
+          profile:profiles(display_name)
+        `)
+        .order("created_at", { ascending: false })
+        .limit(20);
 
-        if (existingPlace) {
-          placeId = existingPlace.id;
-        } else {
-          const { data: newPlace, error: insertError } = await supabase
-            .from("places")
-            .insert({
-              osm_id: selectedStation.osm_id,
-              name: selectedStation.name,
-              place_type: selectedStation.place_type,
-              latitude: selectedStation.latitude,
-              longitude: selectedStation.longitude,
-              address: selectedStation.address,
-              brand: selectedStation.brand,
-            })
-            .select("id")
-            .single();
-
-          if (insertError) throw insertError;
-          if (newPlace) placeId = newPlace.id;
-        }
+      if (!error && data) {
+        setPosts(data as PostWithDetails[]);
       }
+      setIsLoading(false);
+    };
 
-      // Insert price post
-      const { error: priceError } = await supabase.from("price_posts").insert({
-        place_id: placeId,
-        user_id: user.id,
-        fuel_type: selectedFuelType,
-        price: parseInt(price),
-      });
+    fetchPosts();
+  }, []);
 
-      if (priceError) throw priceError;
+  const tabs = [
+    { id: "all" as TabType, label: "すべて" },
+    { id: "price" as TabType, label: "価格情報" },
+    { id: "car" as TabType, label: "クルマ" },
+  ];
 
-      // Increment user points
-      await supabase.rpc("increment_points", {
-        user_id: user.id,
-        amount: 10,
-      });
+  const sortOptions = [
+    { id: "new" as SortType, label: "新着" },
+    { id: "likes" as SortType, label: "いいね" },
+    { id: "views" as SortType, label: "閲覧数" },
+  ];
 
-      setSubmitSuccess(true);
-      setPrice("");
-      setSelectedStation(null);
-      
-      setTimeout(() => {
-        setSubmitSuccess(false);
-      }, 3000);
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return "たった今";
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}分前`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}時間前`;
+    return `${Math.floor(diffInSeconds / 86400)}日前`;
+  };
 
-      onPricePosted?.();
-    } catch (err) {
-      console.error("Error posting price:", err);
-      setError("価格の投稿に失敗しました。もう一度お試しください。");
-    } finally {
-      setIsSubmitting(false);
+  const getAvatarColor = (name: string) => {
+    const colors = ["bg-red-500", "bg-orange-500", "bg-green-500", "bg-blue-500", "bg-purple-500"];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
+  const getFuelTypeColor = (fuelType: FuelType) => {
+    switch (fuelType) {
+      case "regular": return "bg-red-500/20 text-red-400";
+      case "high_octane": return "bg-orange-500/20 text-orange-400";
+      case "diesel": return "bg-blue-500/20 text-blue-400";
+      case "kerosene": return "bg-purple-500/20 text-purple-400";
     }
   };
 
-  if (!user) {
-    return (
-      <div className="flex flex-col h-full p-4">
-        <div className="flex-1 flex flex-col items-center justify-center text-center">
-          <Fuel className="h-16 w-16 text-muted-foreground mb-4" />
-          <h2 className="text-xl font-bold text-foreground mb-2">価格を投稿</h2>
-          <p className="text-muted-foreground mb-6">
-            ガソリン価格を投稿してポイントを獲得しましょう
-          </p>
-          <a
-            href="/auth/login"
-            className="rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground"
-          >
-            ログインして投稿
-          </a>
-        </div>
-        <AdBanner placement="bottom" className="mt-4" />
-      </div>
-    );
-  }
+  const getBorderColor = (fuelType: FuelType) => {
+    switch (fuelType) {
+      case "regular": return "border-l-red-500";
+      case "high_octane": return "border-l-orange-500";
+      case "diesel": return "border-l-blue-500";
+      case "kerosene": return "border-l-purple-500";
+    }
+  };
+
+  const filteredPosts = activeTab === "price" 
+    ? posts 
+    : activeTab === "car" 
+    ? [] // No car posts yet
+    : posts;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="mb-4">
-          <h2 className="text-xl font-bold text-foreground mb-1">価格を投稿</h2>
-          <p className="text-sm text-muted-foreground">
-            投稿すると10ポイント獲得できます
-          </p>
-        </div>
-
-        {submitSuccess && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-500/20 border border-green-500/30 p-3 text-green-400">
-            <Check className="h-5 w-5" />
-            <span>価格を投稿しました！10ポイント獲得</span>
-          </div>
-        )}
-
-        {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-500/20 border border-red-500/30 p-3 text-red-400">
-            <AlertCircle className="h-5 w-5" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Station Selection */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
-            ガソリンスタンドを選択
-          </label>
-          
-          {selectedStation ? (
-            <div className="rounded-lg border border-primary bg-primary/5 p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">{selectedStation.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedStation.brand && `${selectedStation.brand} - `}
-                    {formatDistance(
-                      calculateDistance(
-                        userLocation[0],
-                        userLocation[1],
-                        selectedStation.latitude,
-                        selectedStation.longitude
-                      )
-                    )}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedStation(null)}
-                  className="text-sm text-primary"
-                >
-                  変更
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="スタンド名で検索..."
-                  className="w-full rounded-lg border border-input bg-card pl-10 pr-4 py-2 text-sm"
-                />
-              </div>
-              
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {filteredStations.length > 0 ? (
-                  filteredStations.map((station) => (
-                    <button
-                      key={station.id}
-                      onClick={() => setSelectedStation(station)}
-                      className="w-full flex items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-secondary transition-colors"
-                    >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white">
-                        <Fuel className="h-5 w-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">{station.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {station.brand && `${station.brand} - `}
-                          {formatDistance(station.distance)}
-                        </p>
-                      </div>
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground py-4">
-                    {searchQuery ? "該当するスタンドがありません" : "周辺にスタンドがありません"}
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Fuel Type Selection */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
-            燃料タイプ
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {(["regular", "high_octane", "diesel", "kerosene"] as FuelType[]).map((type) => (
-              <button
-                key={type}
-                onClick={() => setSelectedFuelType(type)}
-                className={`rounded-lg border p-3 text-sm font-medium transition-colors ${
-                  selectedFuelType === type
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-foreground hover:bg-secondary"
-                }`}
-              >
-                {FUEL_TYPE_LABELS[type]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Price Input */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-foreground mb-2">
-            価格（円/L）
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">¥</span>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="165"
-              min="100"
-              max="300"
-              className="w-full rounded-lg border border-input bg-card pl-8 pr-12 py-3 text-lg font-bold"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">/L</span>
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        <button
-          onClick={handleSubmit}
-          disabled={!selectedStation || !price || isSubmitting}
-          className="w-full rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isSubmitting ? "投稿中..." : "価格を投稿する"}
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <h1 className="text-2xl font-bold text-foreground">投稿</h1>
+        <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border">
+          <Search className="h-5 w-5 text-muted-foreground" />
         </button>
       </div>
 
-      <div className="p-4 pt-0">
-        <AdBanner placement="bottom" />
+      {/* Tabs */}
+      <div className="border-b border-border">
+        <div className="flex">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === tab.id
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {tab.label}
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Sort Options */}
+      <div className="flex items-center gap-2 px-4 py-3">
+        <span className="text-sm text-muted-foreground">並び替え:</span>
+        {sortOptions.map((option) => (
+          <button
+            key={option.id}
+            onClick={() => setSortBy(option.id)}
+            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+              sortBy === option.id
+                ? "bg-primary text-primary-foreground"
+                : "bg-card border border-border text-muted-foreground"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Posts List */}
+      <div className="flex-1 overflow-y-auto px-4 pb-24">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        ) : filteredPosts.length > 0 ? (
+          <div className="space-y-3">
+            {filteredPosts.map((post) => {
+              const displayName = post.profile?.display_name || "ゲスト";
+              const avatarLetter = displayName.charAt(0);
+              
+              return (
+                <div
+                  key={post.id}
+                  className={`rounded-xl bg-card border border-border p-4 border-l-4 ${getBorderColor(post.fuel_type)}`}
+                >
+                  {/* Post Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-full text-white font-bold ${getAvatarColor(displayName)}`}>
+                        {avatarLetter}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">{displayName}</span>
+                          <span className="text-xs text-muted-foreground">{formatTimeAgo(post.created_at)}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {post.place?.brand && `${post.place.brand} `}
+                          {post.place?.name || "不明なスタンド"}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Price Display */}
+                    <div className={`rounded-lg px-3 py-2 ${getFuelTypeColor(post.fuel_type)}`}>
+                      <p className="text-2xl font-bold">¥{post.price}<span className="text-sm font-normal">/L</span></p>
+                      <p className="text-xs text-center">{FUEL_TYPE_LABELS[post.fuel_type]}</p>
+                    </div>
+                  </div>
+
+                  {/* Tags and Actions */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+                      価格情報
+                    </span>
+                    <div className="flex items-center gap-4">
+                      <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                        <Heart className="h-4 w-4" />
+                        <span className="text-sm">0</span>
+                      </button>
+                      <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                        <MessageSquare className="h-4 w-4" />
+                        <span className="text-sm">コメント</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-primary/30">
+              <ShoppingCart className="h-10 w-10 text-primary" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              {activeTab === "car" ? "クルマの投稿がありません" : "近くに投稿がありません"}
+            </h3>
+            <p className="text-muted-foreground mb-1">最初の投稿をしてみよう！</p>
+            <p className="text-sm text-muted-foreground mb-6">あなたの情報がドライバーの役に立ちます。</p>
+            <button
+              onClick={() => onOpenPostForm?.()}
+              className="rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground"
+            >
+              価格を投稿する
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Floating Add Button */}
+      <button
+        onClick={() => onOpenPostForm?.()}
+        className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 text-primary-foreground"
+      >
+        <Plus className="h-7 w-7" />
+      </button>
     </div>
   );
 }

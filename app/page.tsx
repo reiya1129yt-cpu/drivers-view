@@ -9,6 +9,7 @@ import FilterBar from "@/components/ui/filter-bar";
 import AdBanner from "@/components/ui/ad-banner";
 import PlaceList from "@/components/place/place-list";
 import PlaceDetail from "@/components/place/place-detail";
+import PricePostModal from "@/components/place/price-post-modal";
 import PostTab from "@/components/tabs/post-tab";
 import MoreTab from "@/components/tabs/more-tab";
 import { Loader2, MapPin } from "lucide-react";
@@ -50,6 +51,7 @@ export default function Home() {
   const [isLocating, setIsLocating] = useState(false);
   const [user, setUser] = useState<{ email: string; id: string } | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [showPriceModal, setShowPriceModal] = useState(false);
 
   // Build URL for fetching places
   const placesUrl = bounds
@@ -150,6 +152,14 @@ export default function Home() {
     window.open(url, "_blank");
   }, []);
 
+  const handleOpenPostForm = useCallback(() => {
+    if (user) {
+      setShowPriceModal(true);
+    } else {
+      window.location.href = "/auth/login";
+    }
+  }, [user]);
+
   const handlePricePosted = useCallback(() => {
     mutate();
     
@@ -237,6 +247,7 @@ export default function Home() {
             places={places}
             userLocation={center}
             onPricePosted={handlePricePosted}
+            onOpenPostForm={handleOpenPostForm}
           />
         )}
 
@@ -252,6 +263,18 @@ export default function Home() {
             onNavigate={handleNavigate}
             isLoggedIn={!!user}
             onPricePosted={handlePricePosted}
+          />
+        )}
+
+        {/* Price Post Modal */}
+        {user && (
+          <PricePostModal
+            isOpen={showPriceModal}
+            onClose={() => setShowPriceModal(false)}
+            places={places}
+            userLocation={center}
+            userId={user.id}
+            onSuccess={handlePricePosted}
           />
         )}
       </div>
