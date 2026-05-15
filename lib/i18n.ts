@@ -1,0 +1,313 @@
+"use client";
+
+export type Language = "ja" | "en" | "zh" | "ko" | "es";
+
+export const LANGUAGE_LABELS: Record<Language, string> = {
+  ja: "日本語",
+  en: "English",
+  zh: "中文",
+  ko: "한국어",
+  es: "Español",
+};
+
+export const translations: Record<Language, Record<string, string>> = {
+  ja: {
+    // Navigation
+    "nav.map": "マップ",
+    "nav.posts": "投稿",
+    "nav.more": "その他",
+    
+    // Map
+    "map.nearbySpots": "周辺スポット",
+    "map.searching": "スポットを検索中...",
+    "map.noSpots": "この周辺にはスポットがありません",
+    "map.moveMap": "地図を移動してみてください",
+    "map.currentLocation": "現在地を取得",
+    
+    // Place types
+    "place.gasStation": "ガソリンスタンド",
+    "place.paSa": "PA/SA",
+    "place.evCharging": "EV充電スポット",
+    
+    // Fuel types
+    "fuel.regular": "レギュラー",
+    "fuel.highOctane": "ハイオク",
+    "fuel.diesel": "軽油",
+    "fuel.kerosene": "灯油",
+    
+    // Posts
+    "posts.title": "投稿",
+    "posts.all": "すべて",
+    "posts.price": "価格情報",
+    "posts.car": "クルマ",
+    "posts.sortBy": "並び替え:",
+    "posts.new": "新着",
+    "posts.likes": "いいね",
+    "posts.views": "閲覧数",
+    "posts.noPosts": "近くに投稿がありません",
+    "posts.firstPost": "最初の投稿をしてみよう！",
+    "posts.helpDrivers": "あなたの情報がドライバーの役に立ちます。",
+    "posts.postPrice": "価格を投稿する",
+    "posts.comment": "コメント",
+    
+    // Car community
+    "car.title": "クルマコミュニティ",
+    "car.loginRequired": "ログインするとクルマコミュニティが利用できます",
+    "car.noPosts": "クルマの投稿がありません",
+    
+    // More
+    "more.title": "その他",
+    "more.points": "ポイント",
+    "more.pointsHistory": "ポイント交換・履歴を見る",
+    "more.premium": "プレミアム",
+    "more.premiumDesc": "広告なし・お気に入り無制限",
+    "more.aiPrediction": "AIガソリン価格予測",
+    "more.aiPredictionDesc": "AIによる価格トレンド分析（参考値）",
+    "more.thisWeek": "今週",
+    "more.nextWeek": "来週",
+    "more.twoWeeks": "再来週",
+    "more.oneMonth": "1ヶ月後",
+    "more.notifications": "通知",
+    "more.notificationCenter": "通知センター",
+    "more.unread": "未読",
+    "more.priceAlert": "価格アラート",
+    "more.priceAlertDesc": "価格変動をお知らせ",
+    "more.news": "ガソリン関連ニュース",
+    "more.settings": "設定",
+    "more.region": "表示地域",
+    "more.language": "言語 / Language",
+    "more.about": "アプリについて",
+    "more.version": "バージョン",
+    "more.logout": "ログアウト",
+    "more.notLoggedIn": "ログインしていません",
+    "more.loginPrompt": "ログインして価格投稿やポイント獲得を始めましょう",
+    "more.login": "ログイン",
+    
+    // Login popup
+    "login.features": "ログインすると使える機能",
+    "login.description": "アカウントを作成して、より便利にDriver's Viewをお使いください。",
+    "login.feature.comment": "コメント機能",
+    "login.feature.favorite": "お気に入り登録",
+    "login.feature.priceAlert": "価格アラート通知",
+    "login.feature.aiPrediction": "AI価格予測",
+    "login.loginRegister": "ログイン / 登録する",
+    "login.notNow": "今はしない",
+    
+    // Settings
+    "settings.region": "表示地域",
+    "settings.selectRegion": "地域を選択",
+    "settings.language": "言語設定",
+    "settings.selectLanguage": "言語を選択してください",
+    "settings.about": "アプリについて",
+    "settings.appName": "Driver's View",
+    "settings.description": "ドライバーのための総合情報アプリ",
+    "settings.terms": "利用規約",
+    "settings.privacy": "プライバシーポリシー",
+    "settings.contact": "お問い合わせ",
+    
+    // Notifications
+    "notifications.title": "通知センター",
+    "notifications.priceChange": "価格変動通知",
+    "notifications.cheapest": "近隣最安通知",
+    "notifications.newPost": "新しい投稿通知",
+    "notifications.paSaCongestion": "PA/SA混雑通知",
+    "notifications.carCommunity": "クルマコミュニティ通知",
+    "notifications.priceAlert": "価格アラート設定",
+    
+    // Common
+    "common.save": "保存",
+    "common.cancel": "キャンセル",
+    "common.close": "閉じる",
+    "common.back": "戻る",
+    "common.loading": "読み込み中...",
+    "common.error": "エラーが発生しました",
+  },
+  en: {
+    // Navigation
+    "nav.map": "Map",
+    "nav.posts": "Posts",
+    "nav.more": "More",
+    
+    // Map
+    "map.nearbySpots": "Nearby Spots",
+    "map.searching": "Searching for spots...",
+    "map.noSpots": "No spots in this area",
+    "map.moveMap": "Try moving the map",
+    "map.currentLocation": "Get current location",
+    
+    // Place types
+    "place.gasStation": "Gas Station",
+    "place.paSa": "PA/SA",
+    "place.evCharging": "EV Charging",
+    
+    // Fuel types
+    "fuel.regular": "Regular",
+    "fuel.highOctane": "Premium",
+    "fuel.diesel": "Diesel",
+    "fuel.kerosene": "Kerosene",
+    
+    // Posts
+    "posts.title": "Posts",
+    "posts.all": "All",
+    "posts.price": "Prices",
+    "posts.car": "Cars",
+    "posts.sortBy": "Sort by:",
+    "posts.new": "New",
+    "posts.likes": "Likes",
+    "posts.views": "Views",
+    "posts.noPosts": "No posts nearby",
+    "posts.firstPost": "Be the first to post!",
+    "posts.helpDrivers": "Your information helps other drivers.",
+    "posts.postPrice": "Post a price",
+    "posts.comment": "Comment",
+    
+    // Car community
+    "car.title": "Car Community",
+    "car.loginRequired": "Log in to access the Car Community",
+    "car.noPosts": "No car posts yet",
+    
+    // More
+    "more.title": "More",
+    "more.points": "Points",
+    "more.pointsHistory": "View points history",
+    "more.premium": "Premium",
+    "more.premiumDesc": "No ads, unlimited favorites",
+    "more.aiPrediction": "AI Gas Price Prediction",
+    "more.aiPredictionDesc": "AI-powered price trend analysis",
+    "more.thisWeek": "This week",
+    "more.nextWeek": "Next week",
+    "more.twoWeeks": "2 weeks",
+    "more.oneMonth": "1 month",
+    "more.notifications": "Notifications",
+    "more.notificationCenter": "Notification Center",
+    "more.unread": "unread",
+    "more.priceAlert": "Price Alert",
+    "more.priceAlertDesc": "Get notified of price changes",
+    "more.news": "Gas-related News",
+    "more.settings": "Settings",
+    "more.region": "Display Region",
+    "more.language": "Language",
+    "more.about": "About",
+    "more.version": "Version",
+    "more.logout": "Log out",
+    "more.notLoggedIn": "Not logged in",
+    "more.loginPrompt": "Log in to post prices and earn points",
+    "more.login": "Log in",
+    
+    // Login popup
+    "login.features": "Features available after login",
+    "login.description": "Create an account to get the most out of Driver's View.",
+    "login.feature.comment": "Comment feature",
+    "login.feature.favorite": "Save favorites",
+    "login.feature.priceAlert": "Price alert notifications",
+    "login.feature.aiPrediction": "AI price predictions",
+    "login.loginRegister": "Log in / Register",
+    "login.notNow": "Not now",
+    
+    // Settings
+    "settings.region": "Display Region",
+    "settings.selectRegion": "Select a region",
+    "settings.language": "Language Settings",
+    "settings.selectLanguage": "Select your language",
+    "settings.about": "About",
+    "settings.appName": "Driver's View",
+    "settings.description": "Comprehensive information app for drivers",
+    "settings.terms": "Terms of Service",
+    "settings.privacy": "Privacy Policy",
+    "settings.contact": "Contact Us",
+    
+    // Notifications
+    "notifications.title": "Notification Center",
+    "notifications.priceChange": "Price change notifications",
+    "notifications.cheapest": "Cheapest nearby notifications",
+    "notifications.newPost": "New post notifications",
+    "notifications.paSaCongestion": "PA/SA congestion notifications",
+    "notifications.carCommunity": "Car community notifications",
+    "notifications.priceAlert": "Price alert settings",
+    
+    // Common
+    "common.save": "Save",
+    "common.cancel": "Cancel",
+    "common.close": "Close",
+    "common.back": "Back",
+    "common.loading": "Loading...",
+    "common.error": "An error occurred",
+  },
+  zh: {
+    "nav.map": "地图",
+    "nav.posts": "发布",
+    "nav.more": "更多",
+    "map.nearbySpots": "附近地点",
+    "map.searching": "搜索中...",
+    "map.noSpots": "此区域没有地点",
+    "map.moveMap": "请尝试移动地图",
+    "place.gasStation": "加油站",
+    "place.paSa": "服务区",
+    "place.evCharging": "充电站",
+    "posts.title": "发布",
+    "posts.all": "全部",
+    "posts.price": "价格",
+    "posts.car": "汽车",
+    "more.title": "更多",
+    "more.settings": "设置",
+    "more.language": "语言",
+    "login.features": "登录后可用的功能",
+    "login.loginRegister": "登录 / 注册",
+    "login.notNow": "暂不登录",
+    "common.save": "保存",
+    "common.back": "返回",
+  },
+  ko: {
+    "nav.map": "지도",
+    "nav.posts": "게시물",
+    "nav.more": "더보기",
+    "map.nearbySpots": "주변 장소",
+    "map.searching": "검색 중...",
+    "map.noSpots": "이 지역에 장소가 없습니다",
+    "map.moveMap": "지도를 이동해 보세요",
+    "place.gasStation": "주유소",
+    "place.paSa": "휴게소",
+    "place.evCharging": "전기차 충전소",
+    "posts.title": "게시물",
+    "posts.all": "전체",
+    "posts.price": "가격",
+    "posts.car": "자동차",
+    "more.title": "더보기",
+    "more.settings": "설정",
+    "more.language": "언어",
+    "login.features": "로그인 후 사용 가능한 기능",
+    "login.loginRegister": "로그인 / 회원가입",
+    "login.notNow": "나중에",
+    "common.save": "저장",
+    "common.back": "뒤로",
+  },
+  es: {
+    "nav.map": "Mapa",
+    "nav.posts": "Publicaciones",
+    "nav.more": "Más",
+    "map.nearbySpots": "Lugares cercanos",
+    "map.searching": "Buscando...",
+    "map.noSpots": "No hay lugares en esta área",
+    "map.moveMap": "Intenta mover el mapa",
+    "place.gasStation": "Gasolinera",
+    "place.paSa": "Área de servicio",
+    "place.evCharging": "Cargador EV",
+    "posts.title": "Publicaciones",
+    "posts.all": "Todo",
+    "posts.price": "Precios",
+    "posts.car": "Autos",
+    "more.title": "Más",
+    "more.settings": "Configuración",
+    "more.language": "Idioma",
+    "login.features": "Funciones disponibles al iniciar sesión",
+    "login.loginRegister": "Iniciar sesión / Registrarse",
+    "login.notNow": "Ahora no",
+    "common.save": "Guardar",
+    "common.back": "Volver",
+  },
+};
+
+// Get translation with fallback to Japanese
+export function t(key: string, lang: Language = "ja"): string {
+  return translations[lang][key] || translations.ja[key] || key;
+}
