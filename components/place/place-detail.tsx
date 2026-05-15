@@ -124,7 +124,7 @@ export default function PlaceDetail({
                           <span className="text-sm font-normal">/L</span>
                         </>
                       ) : (
-                        <span className="text-muted-foreground">--</span>
+                        <span className="text-sm text-muted-foreground">未登録</span>
                       )}
                     </p>
                   </div>

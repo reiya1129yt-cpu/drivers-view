@@ -4,11 +4,13 @@ import { useState, useCallback, useEffect } from "react";
 import useSWR from "swr";
 import dynamic from "next/dynamic";
 import Header from "@/components/layout/header";
+import BottomNav, { TabType } from "@/components/layout/bottom-nav";
 import FilterBar from "@/components/ui/filter-bar";
-import SearchBar from "@/components/ui/search-bar";
 import PlaceList from "@/components/place/place-list";
 import PlaceDetail from "@/components/place/place-detail";
-import { Loader2 } from "lucide-react";
+import PostTab from "@/components/tabs/post-tab";
+import MoreTab from "@/components/tabs/more-tab";
+import { Loader2, MapPin } from "lucide-react";
 import type { PlaceWithPrices, PlaceType, Profile } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 
@@ -27,6 +29,7 @@ const DEFAULT_CENTER: [number, number] = [35.6762, 139.6503];
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<TabType>("map");
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [bounds, setBounds] = useState<{
     north: number;
@@ -44,7 +47,7 @@ export default function Home() {
   );
   const [isListExpanded, setIsListExpanded] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; id: string } | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
 
   // Build URL for fetching places
@@ -56,7 +59,8 @@ export default function Home() {
     placesUrl,
     fetcher,
     {
-      refreshInterval: 60000, // Refresh every minute
+      refreshInterval: 60000,
+      revalidateOnFocus: false,
     }
   );
 
@@ -71,7 +75,7 @@ export default function Home() {
       } = await supabase.auth.getUser();
 
       if (authUser) {
-        setUser({ email: authUser.email || "" });
+        setUser({ email: authUser.email || "", id: authUser.id });
 
         const { data: profileData } = await supabase
           .from("profiles")
@@ -133,7 +137,6 @@ export default function Home() {
   const handleTypeToggle = useCallback((type: PlaceType) => {
     setSelectedTypes((prev) => {
       if (prev.includes(type)) {
-        // Don't allow deselecting all
         if (prev.length === 1) return prev;
         return prev.filter((t) => t !== type);
       }
@@ -141,34 +144,14 @@ export default function Home() {
     });
   }, []);
 
-  const handleSearch = useCallback(async (query: string) => {
-    // Use Nominatim for geocoding (free, but has rate limits)
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=jp&limit=1`
-      );
-      const results = await response.json();
-
-      if (results.length > 0) {
-        const { lat, lon } = results[0];
-        setCenter([parseFloat(lat), parseFloat(lon)]);
-      }
-    } catch (error) {
-      console.error("Geocoding error:", error);
-    }
-  }, []);
-
   const handleNavigate = useCallback((place: PlaceWithPrices) => {
-    // Open navigation in Google Maps
     const url = `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=driving`;
     window.open(url, "_blank");
   }, []);
 
   const handlePricePosted = useCallback(() => {
-    // Refresh places and profile
     mutate();
     
-    // Refresh profile to update points
     const refreshProfile = async () => {
       const supabase = createClient();
       const {
@@ -195,37 +178,65 @@ export default function Home() {
     <div className="flex h-full flex-col">
       <Header user={user} profile={profile} />
 
-      <div className="relative flex-1">
-        {/* Search and Filter Controls */}
-        <div className="absolute top-0 left-0 right-0 z-20 p-4 space-y-3">
-          <SearchBar
-            onSearch={handleSearch}
-            onLocate={getUserLocation}
-            isLocating={isLocating}
-          />
-          <FilterBar selectedTypes={selectedTypes} onToggle={handleTypeToggle} />
-        </div>
+      {/* Main Content Area */}
+      <div className="relative flex-1 pb-16">
+        {activeTab === "map" && (
+          <>
+            {/* Filter Controls at Top */}
+            <div className="absolute top-0 left-0 right-0 z-20 p-3">
+              <FilterBar selectedTypes={selectedTypes} onToggle={handleTypeToggle} />
+            </div>
 
-        {/* Map */}
-        <div className="absolute inset-0">
-          <MapView
+            {/* Map */}
+            <div className="absolute inset-0">
+              <MapView
+                places={places}
+                center={center}
+                onBoundsChange={handleBoundsChange}
+                onPlaceSelect={setSelectedPlace}
+                selectedTypes={selectedTypes}
+              />
+            </div>
+
+            {/* Current Location Button */}
+            <button
+              onClick={getUserLocation}
+              disabled={isLocating}
+              className="absolute bottom-36 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-card shadow-lg border border-border transition-colors hover:bg-secondary disabled:opacity-50"
+              title="現在地を取得"
+            >
+              {isLocating ? (
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              ) : (
+                <MapPin className="h-5 w-5 text-primary" />
+              )}
+            </button>
+
+            {/* Place List */}
+            <PlaceList
+              places={places}
+              userLocation={center}
+              onNavigate={handleNavigate}
+              onShowDetail={setSelectedPlace}
+              isExpanded={isListExpanded}
+              onToggleExpand={() => setIsListExpanded(!isListExpanded)}
+            />
+          </>
+        )}
+
+        {activeTab === "post" && (
+          <PostTab
+            user={user}
+            profile={profile}
             places={places}
-            center={center}
-            onBoundsChange={handleBoundsChange}
-            onPlaceSelect={setSelectedPlace}
-            selectedTypes={selectedTypes}
+            userLocation={center}
+            onPricePosted={handlePricePosted}
           />
-        </div>
+        )}
 
-        {/* Place List */}
-        <PlaceList
-          places={places}
-          userLocation={center}
-          onNavigate={handleNavigate}
-          onShowDetail={setSelectedPlace}
-          isExpanded={isListExpanded}
-          onToggleExpand={() => setIsListExpanded(!isListExpanded)}
-        />
+        {activeTab === "more" && (
+          <MoreTab user={user} profile={profile} />
+        )}
 
         {/* Place Detail Modal */}
         {selectedPlace && (
@@ -238,6 +249,9 @@ export default function Home() {
           />
         )}
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }

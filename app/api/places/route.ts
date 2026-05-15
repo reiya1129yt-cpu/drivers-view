@@ -1,5 +1,147 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import type { PlaceType, PlaceWithPrices } from "@/lib/types";
+
+interface OverpassElement {
+  type: string;
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: {
+    name?: string;
+    brand?: string;
+    "addr:full"?: string;
+    "addr:city"?: string;
+    "addr:street"?: string;
+    amenity?: string;
+    highway?: string;
+    shop?: string;
+  };
+}
+
+interface OverpassResponse {
+  elements: OverpassElement[];
+}
+
+// Map OSM tags to our place types
+function getPlaceType(element: OverpassElement): PlaceType | null {
+  const tags = element.tags || {};
+  
+  // Gas stations
+  if (tags.amenity === "fuel") {
+    return "gas_station";
+  }
+  
+  // EV charging
+  if (tags.amenity === "charging_station") {
+    return "ev_charging";
+  }
+  
+  // PA/SA (Service areas and rest areas in Japan)
+  if (
+    tags.highway === "services" ||
+    tags.highway === "rest_area" ||
+    (tags.name && (tags.name.includes("SA") || tags.name.includes("PA") || tags.name.includes("サービスエリア") || tags.name.includes("パーキングエリア")))
+  ) {
+    return "pa_sa";
+  }
+  
+  return null;
+}
+
+// Build Overpass query based on requested types
+function buildOverpassQuery(
+  south: number,
+  west: number,
+  north: number,
+  east: number,
+  types: PlaceType[]
+): string {
+  const queries: string[] = [];
+  
+  if (types.includes("gas_station")) {
+    queries.push(`node["amenity"="fuel"](${south},${west},${north},${east});`);
+    queries.push(`way["amenity"="fuel"](${south},${west},${north},${east});`);
+  }
+  
+  if (types.includes("ev_charging")) {
+    queries.push(`node["amenity"="charging_station"](${south},${west},${north},${east});`);
+    queries.push(`way["amenity"="charging_station"](${south},${west},${north},${east});`);
+  }
+  
+  if (types.includes("pa_sa")) {
+    queries.push(`node["highway"="services"](${south},${west},${north},${east});`);
+    queries.push(`way["highway"="services"](${south},${west},${north},${east});`);
+    queries.push(`node["highway"="rest_area"](${south},${west},${north},${east});`);
+    queries.push(`way["highway"="rest_area"](${south},${west},${north},${east});`);
+  }
+  
+  return `[out:json][timeout:25];(${queries.join("")});out center;`;
+}
+
+// Fetch places from Overpass API
+async function fetchFromOverpass(
+  south: number,
+  west: number,
+  north: number,
+  east: number,
+  types: PlaceType[]
+): Promise<PlaceWithPrices[]> {
+  const query = buildOverpassQuery(south, west, north, east, types);
+  
+  try {
+    const response = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: `data=${encodeURIComponent(query)}`,
+    });
+    
+    if (!response.ok) {
+      console.error("Overpass API error:", response.status);
+      return [];
+    }
+    
+    const data: OverpassResponse = await response.json();
+    
+    return data.elements
+      .map((element) => {
+        const placeType = getPlaceType(element);
+        if (!placeType) return null;
+        
+        const lat = element.lat ?? element.center?.lat;
+        const lon = element.lon ?? element.center?.lon;
+        
+        if (!lat || !lon) return null;
+        
+        const tags = element.tags || {};
+        const name = tags.name || (placeType === "gas_station" ? (tags.brand || "ガソリンスタンド") : (placeType === "ev_charging" ? "EV充電スポット" : "PA/SA"));
+        
+        const address = tags["addr:full"] || (tags["addr:city"] && tags["addr:street"] ? `${tags["addr:city"]}${tags["addr:street"]}` : null);
+        
+        return {
+          id: `osm-${element.type}-${element.id}`,
+          osm_id: `${element.type}/${element.id}`,
+          name,
+          place_type: placeType,
+          latitude: lat,
+          longitude: lon,
+          address,
+          brand: tags.brand || null,
+          amenities: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          latest_prices: {},
+        } as PlaceWithPrices;
+      })
+      .filter((place): place is PlaceWithPrices => place !== null);
+  } catch (error) {
+    console.error("Overpass fetch error:", error);
+    return [];
+  }
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -7,17 +149,20 @@ export async function GET(request: Request) {
   const south = parseFloat(searchParams.get("south") || "0");
   const east = parseFloat(searchParams.get("east") || "0");
   const west = parseFloat(searchParams.get("west") || "0");
-  const types = searchParams.get("types")?.split(",") || [
+  const types = (searchParams.get("types")?.split(",") || [
     "gas_station",
     "pa_sa",
     "ev_charging",
-  ];
+  ]) as PlaceType[];
 
   try {
     const supabase = await createClient();
-
-    // Get places within bounds
-    const { data: places, error: placesError } = await supabase
+    
+    // Fetch from Overpass API (OSM data)
+    const osmPlaces = await fetchFromOverpass(south, west, north, east, types);
+    
+    // Fetch from our database (for places with user-submitted prices)
+    const { data: dbPlaces, error: placesError } = await supabase
       .from("places")
       .select("*")
       .gte("latitude", south)
@@ -28,15 +173,22 @@ export async function GET(request: Request) {
       .limit(100);
 
     if (placesError) {
-      throw placesError;
+      console.error("Database error:", placesError);
     }
 
-    if (!places || places.length === 0) {
-      return NextResponse.json({ places: [] });
-    }
+    // Get OSM IDs from our database places to avoid duplicates
+    const dbOsmIds = new Set((dbPlaces || []).map((p) => p.osm_id).filter(Boolean));
+    
+    // Filter out OSM places that are already in our database
+    const uniqueOsmPlaces = osmPlaces.filter(
+      (place) => !dbOsmIds.has(place.osm_id)
+    );
 
-    // Get latest prices for gas stations
-    const gasStationIds = places
+    // Combine database places and unique OSM places
+    const allPlaces = [...(dbPlaces || []), ...uniqueOsmPlaces];
+
+    // Get latest prices for gas stations from our database
+    const gasStationDbIds = (dbPlaces || [])
       .filter((p) => p.place_type === "gas_station")
       .map((p) => p.id);
 
@@ -45,21 +197,21 @@ export async function GET(request: Request) {
       { regular?: number; high_octane?: number; diesel?: number; kerosene?: number; updated_at?: string }
     > = {};
 
-    if (gasStationIds.length > 0) {
+    if (gasStationDbIds.length > 0) {
       const { data: prices } = await supabase
         .from("price_posts")
         .select("*")
-        .in("place_id", gasStationIds)
+        .in("place_id", gasStationDbIds)
         .order("created_at", { ascending: false });
 
       if (prices) {
-        // Group by place and get latest price for each fuel type
         prices.forEach((price) => {
           if (!pricesMap[price.place_id]) {
             pricesMap[price.place_id] = {};
           }
-          if (!pricesMap[price.place_id][price.fuel_type as keyof typeof pricesMap[string]]) {
-            pricesMap[price.place_id][price.fuel_type as keyof typeof pricesMap[string]] = price.price;
+          const fuelKey = price.fuel_type as keyof Omit<typeof pricesMap[string], 'updated_at'>;
+          if (!pricesMap[price.place_id][fuelKey]) {
+            pricesMap[price.place_id][fuelKey] = price.price;
             if (!pricesMap[price.place_id].updated_at || price.created_at > pricesMap[price.place_id].updated_at!) {
               pricesMap[price.place_id].updated_at = price.created_at;
             }
@@ -69,12 +221,23 @@ export async function GET(request: Request) {
     }
 
     // Combine places with prices
-    const placesWithPrices = places.map((place) => ({
+    const placesWithPrices: PlaceWithPrices[] = allPlaces.map((place) => ({
       ...place,
       latest_prices: pricesMap[place.id] || {},
     }));
 
-    return NextResponse.json({ places: placesWithPrices });
+    // Sort by distance from center of bounds
+    const centerLat = (north + south) / 2;
+    const centerLon = (east + west) / 2;
+    
+    placesWithPrices.sort((a, b) => {
+      const distA = Math.pow(a.latitude - centerLat, 2) + Math.pow(a.longitude - centerLon, 2);
+      const distB = Math.pow(b.latitude - centerLat, 2) + Math.pow(b.longitude - centerLon, 2);
+      return distA - distB;
+    });
+
+    // Limit to 100 places
+    return NextResponse.json({ places: placesWithPrices.slice(0, 100) });
   } catch (error) {
     console.error("Error fetching places:", error);
     return NextResponse.json(

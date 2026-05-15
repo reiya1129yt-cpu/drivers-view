@@ -92,25 +92,33 @@ export default function PlaceCard({
       </div>
 
       {place.place_type === "gas_station" && (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {fuelTypes.map((fuelType) => {
-            const price = place.latest_prices[fuelType];
-            if (!price) return null;
-            return (
-              <div
-                key={fuelType}
-                className="rounded-md bg-secondary px-2 py-1 text-center"
-              >
-                <p className="text-xs text-muted-foreground">
-                  {FUEL_TYPE_LABELS[fuelType]}
-                </p>
-                <p className="font-bold text-card-foreground">
-                  ¥{price}
-                  <span className="text-xs font-normal">/L</span>
-                </p>
-              </div>
-            );
-          })}
+        <div className="mt-3">
+          {hasPrices ? (
+            <div className="grid grid-cols-2 gap-2">
+              {fuelTypes.map((fuelType) => {
+                const price = place.latest_prices[fuelType];
+                if (!price) return null;
+                return (
+                  <div
+                    key={fuelType}
+                    className="rounded-md bg-secondary px-2 py-1 text-center"
+                  >
+                    <p className="text-xs text-muted-foreground">
+                      {FUEL_TYPE_LABELS[fuelType]}
+                    </p>
+                    <p className="font-bold text-card-foreground">
+                      ¥{price}
+                      <span className="text-xs font-normal">/L</span>
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-md bg-secondary/50 px-3 py-2 text-center">
+              <p className="text-sm text-muted-foreground">価格未登録</p>
+            </div>
+          )}
         </div>
       )}
 

@@ -61,8 +61,8 @@ export default function PlaceList({
 
   return (
     <div
-      className={`absolute bottom-0 left-0 right-0 z-30 bg-background rounded-t-2xl shadow-lg transition-all duration-300 ${
-        isExpanded ? "h-[60vh]" : "h-48"
+      className={`absolute left-0 right-0 z-30 bg-background rounded-t-2xl shadow-lg transition-all duration-300 ${
+        isExpanded ? "bottom-16 h-[50vh]" : "bottom-16 h-32"
       }`}
     >
       <div
