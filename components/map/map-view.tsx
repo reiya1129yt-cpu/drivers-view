@@ -1,30 +1,18 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { Loader2 } from "lucide-react";
 import type { PlaceWithPrices, PlaceType } from "@/lib/types";
-
-const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-const Marker = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Marker),
-  { ssr: false }
-);
-const Popup = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Popup),
-  { ssr: false }
-);
-const useMap = dynamic(
-  () => import("react-leaflet").then((mod) => mod.useMap as unknown),
-  { ssr: false }
-) as unknown;
 
 interface MapViewProps {
   places: PlaceWithPrices[];
@@ -44,12 +32,12 @@ function MapEvents({
 }: {
   onBoundsChange?: MapViewProps["onBoundsChange"];
 }) {
-  const { useMapEvents } = require("react-leaflet");
-  
+  const map = useMap();
+
   useMapEvents({
-    moveend: (e: { target: { getBounds: () => { getNorth: () => number; getSouth: () => number; getEast: () => number; getWest: () => number } } }) => {
+    moveend: () => {
       if (onBoundsChange) {
-        const bounds = e.target.getBounds();
+        const bounds = map.getBounds();
         onBoundsChange({
           north: bounds.getNorth(),
           south: bounds.getSouth(),
@@ -60,12 +48,24 @@ function MapEvents({
     },
   });
 
+  // Trigger initial bounds update
+  useEffect(() => {
+    if (onBoundsChange) {
+      const bounds = map.getBounds();
+      onBoundsChange({
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest(),
+      });
+    }
+  }, [map, onBoundsChange]);
+
   return null;
 }
 
 function RecenterMap({ center }: { center: [number, number] }) {
-  const { useMap: useMapHook } = require("react-leaflet");
-  const map = useMapHook();
+  const map = useMap();
 
   useEffect(() => {
     map.setView(center, map.getZoom());
@@ -74,41 +74,48 @@ function RecenterMap({ center }: { center: [number, number] }) {
   return null;
 }
 
-function createIcon(placeType: PlaceType) {
-  if (typeof window === "undefined") return null;
-  
-  const L = require("leaflet");
-  const colors: Record<PlaceType, string> = {
-    gas_station: "#ef4444",
-    pa_sa: "#22c55e",
-    ev_charging: "#3b82f6",
-  };
+const iconColors: Record<PlaceType, string> = {
+  gas_station: "#ef4444",
+  pa_sa: "#22c55e",
+  ev_charging: "#3b82f6",
+};
 
-  const icons: Record<PlaceType, string> = {
-    gas_station: "⛽",
-    pa_sa: "🅿️",
-    ev_charging: "⚡",
-  };
+const iconSymbols: Record<PlaceType, string> = {
+  gas_station: "⛽",
+  pa_sa: "🅿",
+  ev_charging: "⚡",
+};
 
+function createIcon(placeType: PlaceType): L.DivIcon {
   return L.divIcon({
     html: `<div style="
-      width: 32px;
-      height: 32px;
-      background: ${colors[placeType]};
+      width: 36px;
+      height: 36px;
+      background: ${iconColors[placeType]};
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 18px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      border: 2px solid white;
-    ">${icons[placeType]}</div>`,
+      border: 3px solid white;
+    ">${iconSymbols[placeType]}</div>`,
     className: "custom-marker",
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36],
   });
 }
+
+const gasStationIcon = createIcon("gas_station");
+const paSaIcon = createIcon("pa_sa");
+const evChargingIcon = createIcon("ev_charging");
+
+const icons: Record<PlaceType, L.DivIcon> = {
+  gas_station: gasStationIcon,
+  pa_sa: paSaIcon,
+  ev_charging: evChargingIcon,
+};
 
 export default function MapView({
   places,
@@ -118,15 +125,9 @@ export default function MapView({
   selectedTypes,
 }: MapViewProps) {
   const [isClient, setIsClient] = useState(false);
-  const [icons, setIcons] = useState<Record<PlaceType, unknown> | null>(null);
 
   useEffect(() => {
     setIsClient(true);
-    setIcons({
-      gas_station: createIcon("gas_station"),
-      pa_sa: createIcon("pa_sa"),
-      ev_charging: createIcon("ev_charging"),
-    });
   }, []);
 
   const filteredPlaces = places.filter((place) =>
@@ -158,7 +159,7 @@ export default function MapView({
         <Marker
           key={place.id}
           position={[place.latitude, place.longitude]}
-          icon={icons?.[place.place_type] as L.Icon}
+          icon={icons[place.place_type]}
           eventHandlers={{
             click: () => onPlaceSelect?.(place),
           }}
@@ -169,7 +170,7 @@ export default function MapView({
               {place.brand && (
                 <p className="text-sm text-muted-foreground">{place.brand}</p>
               )}
-              {place.latest_prices.regular && (
+              {place.latest_prices?.regular && (
                 <p className="text-lg font-bold text-primary mt-1">
                   レギュラー: ¥{place.latest_prices.regular}
                 </p>
