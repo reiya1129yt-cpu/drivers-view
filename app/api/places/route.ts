@@ -388,8 +388,7 @@ export async function GET(request: Request) {
     
     // If no places found, generate fallback data
     if (allPlaces.length === 0) {
-      const fallbackPlaces = generateFallbackPlaces(centerLat, centerLon, types);
-      allPlaces = fallbackPlaces;
+      allPlaces = generateFallbackPlaces(centerLat, centerLon, types);
     }
 
     // Get latest prices for gas stations from our database
