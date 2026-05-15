@@ -13,6 +13,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Loader2, Plus, Minus } from "lucide-react";
 import type { PlaceWithPrices, PlaceType } from "@/lib/types";
+import { BUSINESS_STATUS_LABELS } from "@/lib/types";
 
 interface MapViewProps {
   places: PlaceWithPrices[];
@@ -197,13 +198,38 @@ export default function MapView({
           }}
         >
           <Popup>
-            <div className="p-2 min-w-[200px]">
-              <h3 className="font-semibold text-foreground">{place.name}</h3>
+            <div className="p-2 min-w-[220px] text-foreground">
+              <h3 className="font-bold text-sm mb-1">{place.name}</h3>
               {place.brand && (
-                <p className="text-sm text-muted-foreground">{place.brand}</p>
+                <p className="text-xs text-muted-foreground mb-2">{place.brand}</p>
               )}
-              {place.latest_prices?.regular && (
-                <p className="text-lg font-bold text-primary mt-1">
+              
+              {/* Business info */}
+              <div className="flex items-center justify-between text-xs mb-2 pb-2 border-b border-border">
+                <span className={`font-medium ${
+                  place.business_status === "open" ? "text-green-500" : 
+                  place.business_status === "closed" ? "text-red-500" : "text-yellow-500"
+                }`}>
+                  {BUSINESS_STATUS_LABELS[place.business_status || "open"]}
+                </span>
+                <span className="text-muted-foreground">{place.business_hours || "時間不明"}</span>
+              </div>
+              
+              {/* Facilities for GS/PA-SA */}
+              {(place.place_type === "gas_station" || place.place_type === "pa_sa") && (
+                <div className="flex gap-3 text-xs mb-2">
+                  <span className={place.has_car_wash ? "text-green-500" : "text-muted-foreground"}>
+                    洗車: {place.has_car_wash ? "○" : "×"}
+                  </span>
+                  <span className={place.has_tire_pressure ? "text-green-500" : "text-muted-foreground"}>
+                    空気圧: {place.has_tire_pressure ? "○" : "×"}
+                  </span>
+                </div>
+              )}
+              
+              {/* Price for GS */}
+              {place.place_type === "gas_station" && place.latest_prices?.regular && (
+                <p className="text-base font-bold text-primary">
                   レギュラー: ¥{place.latest_prices.regular}
                 </p>
               )}

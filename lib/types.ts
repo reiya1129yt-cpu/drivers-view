@@ -34,6 +34,9 @@ export interface Profile {
   updated_at: string;
 }
 
+export type BusinessStatus = "open" | "closed" | "outside_hours";
+export type CongestionLevel = "empty" | "normal" | "crowded";
+
 export interface PlaceWithPrices extends Place {
   latest_prices: {
     regular?: number;
@@ -42,7 +45,34 @@ export interface PlaceWithPrices extends Place {
     kerosene?: number;
     updated_at?: string;
   };
+  // New fields for detailed info
+  has_car_wash?: boolean;
+  has_tire_pressure?: boolean;
+  business_hours?: string; // "24時間" or "7:00〜22:00"
+  business_status?: BusinessStatus;
+  // PA/SA specific
+  congestion_level?: CongestionLevel;
+  toilet_available?: boolean;
+  is_closed?: boolean;
 }
+
+export const BUSINESS_STATUS_LABELS: Record<BusinessStatus, string> = {
+  open: "営業中",
+  closed: "閉鎖中",
+  outside_hours: "営業時間外",
+};
+
+export const CONGESTION_LABELS: Record<CongestionLevel, string> = {
+  empty: "空いてる",
+  normal: "普通",
+  crowded: "混雑",
+};
+
+export const CONGESTION_COLORS: Record<CongestionLevel, string> = {
+  empty: "text-green-400",
+  normal: "text-yellow-400",
+  crowded: "text-red-400",
+};
 
 export const FUEL_TYPE_LABELS: Record<FuelType, string> = {
   regular: "レギュラー",

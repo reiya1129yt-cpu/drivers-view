@@ -1,6 +1,34 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { PlaceType, PlaceWithPrices } from "@/lib/types";
+import type { PlaceType, PlaceWithPrices, BusinessStatus, CongestionLevel } from "@/lib/types";
+
+// Generate sample prices for gas stations
+function generateSamplePrices() {
+  const baseRegular = 165 + Math.floor(Math.random() * 10);
+  return {
+    regular: baseRegular,
+    high_octane: baseRegular + 11 + Math.floor(Math.random() * 3),
+    diesel: baseRegular - 15 + Math.floor(Math.random() * 5),
+    kerosene: 105 + Math.floor(Math.random() * 10),
+  };
+}
+
+// Generate random business status based on time
+function getBusinessStatus(): BusinessStatus {
+  const hour = new Date().getHours();
+  if (hour >= 7 && hour < 22) {
+    return Math.random() > 0.1 ? "open" : "outside_hours";
+  }
+  return Math.random() > 0.7 ? "open" : "outside_hours";
+}
+
+// Generate random congestion level
+function getCongestionLevel(): CongestionLevel {
+  const rand = Math.random();
+  if (rand < 0.4) return "empty";
+  if (rand < 0.8) return "normal";
+  return "crowded";
+}
 
 // Generate fallback sample spots around a given center
 function generateFallbackPlaces(
@@ -22,6 +50,10 @@ function generateFallbackPlaces(
       const lon = centerLon + distance * Math.sin(angle) / Math.cos(centerLat * Math.PI / 180);
       const brand = gasStationBrands[i % gasStationBrands.length];
       
+      const hasCarWash = Math.random() > 0.3;
+      const hasTirePressure = Math.random() > 0.4;
+      const is24Hours = Math.random() > 0.7;
+      
       fallbackPlaces.push({
         id: `fallback-gs-${i}`,
         osm_id: null,
@@ -29,12 +61,20 @@ function generateFallbackPlaces(
         place_type: "gas_station",
         latitude: lat,
         longitude: lon,
-        address: null,
+        address: `東京都${["新宿区", "渋谷区", "豊島区", "港区", "台東区"][i]}`,
         brand,
-        amenities: ["洗車"],
+        amenities: [
+          ...(hasCarWash ? ["洗車"] : []),
+          ...(hasTirePressure ? ["タイヤ空気圧"] : []),
+          ...(is24Hours ? ["24時間営業"] : []),
+        ],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        latest_prices: {},
+        latest_prices: generateSamplePrices(),
+        has_car_wash: hasCarWash,
+        has_tire_pressure: hasTirePressure,
+        business_hours: is24Hours ? "24時間" : `${7 + Math.floor(Math.random() * 2)}:00〜${20 + Math.floor(Math.random() * 3)}:00`,
+        business_status: getBusinessStatus(),
       });
     }
   }
@@ -55,12 +95,19 @@ function generateFallbackPlaces(
         place_type: "pa_sa",
         latitude: lat,
         longitude: lon,
-        address: null,
+        address: `${["東京都", "神奈川県"][i]}高速道路`,
         brand: null,
-        amenities: ["レストラン", "トイレ", "コンビニ"],
+        amenities: ["レストラン", "トイレ", "コンビニ", "ガソリンスタンド"],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        latest_prices: {},
+        latest_prices: generateSamplePrices(),
+        has_car_wash: true,
+        has_tire_pressure: true,
+        business_hours: "24時間",
+        business_status: "open",
+        congestion_level: getCongestionLevel(),
+        toilet_available: true,
+        is_closed: false,
       });
     }
   }
@@ -74,6 +121,8 @@ function generateFallbackPlaces(
       const lat = centerLat + distance * Math.cos(angle);
       const lon = centerLon + distance * Math.sin(angle) / Math.cos(centerLat * Math.PI / 180);
       
+      const is24Hours = Math.random() > 0.3;
+      
       fallbackPlaces.push({
         id: `fallback-ev-${i}`,
         osm_id: null,
@@ -81,17 +130,24 @@ function generateFallbackPlaces(
         place_type: "ev_charging",
         latitude: lat,
         longitude: lon,
-        address: null,
-        brand: i === 0 ? "Tesla" : null,
-        amenities: ["24時間", "急速充電"],
+        address: `東京都${["江東区", "世田谷区"][i]}`,
+        brand: i === 0 ? "Tesla" : "CHAdeMO",
+        amenities: [
+          ...(is24Hours ? ["24時間"] : []),
+          "急速充電",
+          "普通充電",
+        ],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         latest_prices: {},
+        has_car_wash: false,
+        has_tire_pressure: false,
+        business_hours: is24Hours ? "24時間" : "9:00〜21:00",
+        business_status: getBusinessStatus(),
       });
     }
   }
   
-  console.log("[v0] Generated fallback places:", fallbackPlaces.length);
   return fallbackPlaces;
 }
 
@@ -229,7 +285,12 @@ async function fetchFromOverpass(
         
         const address = tags["addr:full"] || (tags["addr:city"] && tags["addr:street"] ? `${tags["addr:city"]}${tags["addr:street"]}` : null);
         
-        return {
+        // Generate sample data for display
+        const hasCarWash = Math.random() > 0.4;
+        const hasTirePressure = Math.random() > 0.5;
+        const is24Hours = Math.random() > 0.6;
+        
+        const basePlace = {
           id: `osm-${element.type}-${element.id}`,
           osm_id: `${element.type}/${element.id}`,
           name,
@@ -241,8 +302,31 @@ async function fetchFromOverpass(
           amenities: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          latest_prices: {},
-        } as PlaceWithPrices;
+          has_car_wash: placeType !== "ev_charging" ? hasCarWash : false,
+          has_tire_pressure: placeType !== "ev_charging" ? hasTirePressure : false,
+          business_hours: is24Hours ? "24時間" : `${7 + Math.floor(Math.random() * 2)}:00〜${20 + Math.floor(Math.random() * 3)}:00`,
+          business_status: getBusinessStatus(),
+        };
+        
+        if (placeType === "gas_station") {
+          return {
+            ...basePlace,
+            latest_prices: generateSamplePrices(),
+          } as PlaceWithPrices;
+        } else if (placeType === "pa_sa") {
+          return {
+            ...basePlace,
+            latest_prices: generateSamplePrices(),
+            congestion_level: getCongestionLevel(),
+            toilet_available: true,
+            is_closed: false,
+          } as PlaceWithPrices;
+        } else {
+          return {
+            ...basePlace,
+            latest_prices: {},
+          } as PlaceWithPrices;
+        }
       })
       .filter((place): place is PlaceWithPrices => place !== null);
     } catch (error) {
