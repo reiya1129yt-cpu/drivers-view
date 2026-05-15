@@ -24,6 +24,7 @@ import LanguageSettings from "@/components/settings/language-settings";
 import NotificationSettings from "@/components/settings/notification-settings";
 import AboutPage from "@/components/settings/about-page";
 import NewsDetail, { type NewsItem } from "@/components/settings/news-detail";
+import PremiumDetail from "@/components/settings/premium-detail";
 import LoginPrompt from "@/components/ui/login-prompt";
 
 interface MoreTabProps {
@@ -31,7 +32,7 @@ interface MoreTabProps {
   profile: Profile | null;
 }
 
-type SettingsPage = "main" | "region" | "language" | "notifications" | "about" | "news";
+type SettingsPage = "main" | "region" | "language" | "notifications" | "about" | "news" | "premium";
 
 // Mock news data
 const newsItems: NewsItem[] = [
@@ -168,6 +169,10 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
     return <NewsDetail news={selectedNews} onBack={() => { setCurrentPage("main"); setSelectedNews(null); }} />;
   }
 
+  if (currentPage === "premium") {
+    return <PremiumDetail onBack={() => setCurrentPage("main")} />;
+  }
+
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-20">
       <div className="p-4">
@@ -237,7 +242,10 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
 
         {/* Premium Card */}
         {user && !profile?.is_premium && (
-          <div className="rounded-xl bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-600/30 p-4 mb-4">
+          <button
+            onClick={() => setCurrentPage("premium")}
+            className="w-full rounded-xl bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-600/30 p-4 mb-4 text-left hover:from-yellow-900/40 hover:to-orange-900/40 transition-colors"
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Star className="h-5 w-5 text-yellow-500" />
@@ -252,7 +260,7 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
                 <ChevronRight className="h-5 w-5 text-yellow-500" />
               </div>
             </div>
-          </div>
+          </button>
         )}
 
         {/* AI Gas Price Prediction */}
