@@ -430,10 +430,7 @@ export async function GET(request: Request) {
       latest_prices: pricesMap[place.id] || {},
     }));
 
-    // Sort by distance from center of bounds
-    const centerLat = (north + south) / 2;
-    const centerLon = (east + west) / 2;
-    
+    // Sort by distance from center of bounds (using centerLat/centerLon already defined above)
     placesWithPrices.sort((a, b) => {
       const distA = Math.pow(a.latitude - centerLat, 2) + Math.pow(a.longitude - centerLon, 2);
       const distB = Math.pow(b.latitude - centerLat, 2) + Math.pow(b.longitude - centerLon, 2);
