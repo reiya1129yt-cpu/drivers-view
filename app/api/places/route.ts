@@ -257,7 +257,6 @@ async function fetchFromOverpass(
   }
   
   // All endpoints failed
-  console.log("[v0] All Overpass endpoints failed, returning empty array");
   return [];
 }
 
@@ -273,18 +272,14 @@ export async function GET(request: Request) {
     "ev_charging",
   ]) as PlaceType[];
 
-  // Debug: Log current map bounds
   const centerLat = (north + south) / 2;
   const centerLon = (east + west) / 2;
-  console.log("[v0] Map bounds:", { north, south, east, west, centerLat, centerLon });
-  console.log("[v0] Requested types:", types);
 
   try {
     const supabase = await createClient();
     
     // Fetch from Overpass API (OSM data)
     const osmPlaces = await fetchFromOverpass(south, west, north, east, types);
-    console.log("[v0] OSM API result count:", osmPlaces.length);
     
     // Fetch from our database (for places with user-submitted prices)
     const { data: dbPlaces, error: placesError } = await supabase
@@ -312,16 +307,10 @@ export async function GET(request: Request) {
     // Combine database places and unique OSM places
     let allPlaces = [...(dbPlaces || []), ...uniqueOsmPlaces];
     
-    // Debug: Log combined count
-    console.log("[v0] Database places:", (dbPlaces || []).length);
-    console.log("[v0] Combined places (before fallback):", allPlaces.length);
-    
     // If no places found, generate fallback data
     if (allPlaces.length === 0) {
-      console.log("[v0] No places found, generating fallback data...");
       const fallbackPlaces = generateFallbackPlaces(centerLat, centerLon, types);
       allPlaces = fallbackPlaces;
-      console.log("[v0] Fallback places count:", fallbackPlaces.length);
     }
 
     // Get latest prices for gas stations from our database
@@ -374,9 +363,7 @@ export async function GET(request: Request) {
     });
 
     // Limit to 100 places
-    const finalPlaces = placesWithPrices.slice(0, 100);
-    console.log("[v0] Final places count:", finalPlaces.length);
-    return NextResponse.json({ places: finalPlaces });
+    return NextResponse.json({ places: placesWithPrices.slice(0, 100) });
   } catch (error) {
     console.error("Error fetching places:", error);
     return NextResponse.json(

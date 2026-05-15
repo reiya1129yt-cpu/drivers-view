@@ -11,7 +11,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Minus } from "lucide-react";
 import type { PlaceWithPrices, PlaceType } from "@/lib/types";
 
 interface MapViewProps {
@@ -72,6 +72,37 @@ function RecenterMap({ center }: { center: [number, number] }) {
   }, [center, map]);
 
   return null;
+}
+
+function ZoomControls() {
+  const map = useMap();
+
+  const handleZoomIn = () => {
+    map.zoomIn();
+  };
+
+  const handleZoomOut = () => {
+    map.zoomOut();
+  };
+
+  return (
+    <div className="absolute top-16 left-3 z-[1000] flex flex-col gap-1">
+      <button
+        onClick={handleZoomIn}
+        className="flex h-10 w-10 items-center justify-center rounded-lg bg-card shadow-lg border border-border transition-colors hover:bg-secondary"
+        title="ズームイン"
+      >
+        <Plus className="h-5 w-5 text-card-foreground" />
+      </button>
+      <button
+        onClick={handleZoomOut}
+        className="flex h-10 w-10 items-center justify-center rounded-lg bg-card shadow-lg border border-border transition-colors hover:bg-secondary"
+        title="ズームアウト"
+      >
+        <Minus className="h-5 w-5 text-card-foreground" />
+      </button>
+    </div>
+  );
 }
 
 const iconColors: Record<PlaceType, string> = {
@@ -155,6 +186,7 @@ export default function MapView({
       />
       <MapEvents onBoundsChange={onBoundsChange} />
       <RecenterMap center={center} />
+      <ZoomControls />
       {filteredPlaces.map((place) => (
         <Marker
           key={place.id}

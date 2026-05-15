@@ -68,11 +68,6 @@ export default function Home() {
   );
 
   const places = data?.places || [];
-  
-  // Debug: log places count
-  useEffect(() => {
-    console.log("[v0] Places count:", places.length, "isLoading:", isLoading);
-  }, [places.length, isLoading]);
 
   // Get user session and profile
   useEffect(() => {
