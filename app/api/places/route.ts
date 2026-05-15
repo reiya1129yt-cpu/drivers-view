@@ -330,13 +330,8 @@ async function fetchFromOverpass(
       })
       .filter((place): place is PlaceWithPrices => place !== null);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      if (errorMsg.includes('abort')) {
-        console.log(`[v0] Overpass timeout from ${endpoint}`);
-      } else {
-        console.error(`[v0] Overpass fetch error from ${endpoint}:`, errorMsg);
-      }
-      continue; // Try next endpoint
+      // Silently try next endpoint on error/timeout
+      continue;
     }
   }
   

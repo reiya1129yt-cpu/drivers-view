@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Bell,
   ChevronRight,
@@ -11,19 +12,29 @@ import {
   Clock,
   ToggleRight,
   ToggleLeft,
+  Lock,
 } from "lucide-react";
 import type { Profile } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { getSettings, saveSettings, REGION_LABELS } from "@/lib/settings";
+import { t, LANGUAGE_LABELS, type Language } from "@/lib/i18n";
+import RegionSettings from "@/components/settings/region-settings";
+import LanguageSettings from "@/components/settings/language-settings";
+import NotificationSettings from "@/components/settings/notification-settings";
+import AboutPage from "@/components/settings/about-page";
+import NewsDetail, { type NewsItem } from "@/components/settings/news-detail";
+import LoginPrompt from "@/components/ui/login-prompt";
 
 interface MoreTabProps {
   user: { email: string; id: string } | null;
   profile: Profile | null;
 }
 
+type SettingsPage = "main" | "region" | "language" | "notifications" | "about" | "news";
+
 // Mock news data
-const newsItems = [
+const newsItems: NewsItem[] = [
   {
     id: 1,
     tag: "価格動向",
@@ -69,6 +80,18 @@ const pricePredictions = [
 export default function MoreTab({ user, profile }: MoreTabProps) {
   const router = useRouter();
   const [priceAlert, setPriceAlert] = useState(true);
+  const [currentPage, setCurrentPage] = useState<SettingsPage>("main");
+  const [language, setLanguage] = useState<Language>("ja");
+  const [region, setRegion] = useState(REGION_LABELS.kanto.ja);
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  useEffect(() => {
+    const settings = getSettings();
+    setLanguage(settings.language);
+    setPriceAlert(settings.priceAlert);
+    setRegion(REGION_LABELS[settings.region][settings.language]);
+  }, []);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -83,11 +106,73 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
     return "U";
   };
 
+  const handlePriceAlertToggle = () => {
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    const newValue = !priceAlert;
+    setPriceAlert(newValue);
+    saveSettings({ priceAlert: newValue });
+  };
+
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
+    const settings = getSettings();
+    setRegion(REGION_LABELS[settings.region][lang]);
+  };
+
+  const handleNewsClick = (news: NewsItem) => {
+    setSelectedNews(news);
+    setCurrentPage("news");
+  };
+
+  const handleAIPredictionClick = () => {
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    // Already logged in, do nothing special
+  };
+
+  // Show settings pages
+  if (currentPage === "region") {
+    return <RegionSettings onBack={() => setCurrentPage("main")} language={language} />;
+  }
+
+  if (currentPage === "language") {
+    return <LanguageSettings onBack={() => setCurrentPage("main")} onLanguageChange={handleLanguageChange} />;
+  }
+
+  if (currentPage === "notifications") {
+    if (!user) {
+      return (
+        <div className="flex flex-col h-full bg-background items-center justify-center p-4">
+          <Lock className="h-16 w-16 text-muted-foreground mb-4" />
+          <p className="text-lg font-medium text-foreground mb-2">ログインが必要です</p>
+          <p className="text-sm text-muted-foreground text-center mb-6">通知設定を利用するにはログインしてください</p>
+          <a href="/auth/login" className="rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground">
+            ログイン
+          </a>
+        </div>
+      );
+    }
+    return <NotificationSettings onBack={() => setCurrentPage("main")} language={language} />;
+  }
+
+  if (currentPage === "about") {
+    return <AboutPage onBack={() => setCurrentPage("main")} language={language} />;
+  }
+
+  if (currentPage === "news" && selectedNews) {
+    return <NewsDetail news={selectedNews} onBack={() => { setCurrentPage("main"); setSelectedNews(null); }} />;
+  }
+
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-20">
       <div className="p-4">
         {/* Header */}
-        <h1 className="text-2xl font-bold text-foreground mb-4">その他</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-4">{t("more.title", language)}</h1>
 
         {/* User Profile Card */}
         {user ? (
@@ -101,14 +186,14 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
                   <h2 className="font-bold text-foreground">
                     {profile?.display_name || "ユーザー"}
                   </h2>
-                  <p className="text-sm text-muted-foreground">関東エリア</p>
+                  <p className="text-sm text-muted-foreground">{region}</p>
                 </div>
               </div>
               <button
                 onClick={handleSignOut}
                 className="rounded-lg bg-card border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
               >
-                ログアウト
+                {t("more.logout", language)}
               </button>
             </div>
 
@@ -119,8 +204,8 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
                   <Clock className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">ポイント</p>
-                  <p className="text-xs text-muted-foreground">ポイント交換・履歴を見る</p>
+                  <p className="font-medium text-foreground">{t("more.points", language)}</p>
+                  <p className="text-xs text-muted-foreground">{t("more.pointsHistory", language)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -136,16 +221,16 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
               <span className="text-2xl font-bold text-primary">?</span>
             </div>
             <h2 className="text-lg font-bold text-foreground mb-2">
-              ログインしていません
+              {t("more.notLoggedIn", language)}
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              ログインして価格投稿やポイント獲得を始めましょう
+              {t("more.loginPrompt", language)}
             </p>
             <a
               href="/auth/login"
               className="inline-block rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground"
             >
-              ログイン
+              {t("more.login", language)}
             </a>
           </div>
         )}
@@ -157,8 +242,8 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
               <div className="flex items-center gap-3">
                 <Star className="h-5 w-5 text-yellow-500" />
                 <div>
-                  <p className="font-bold text-yellow-400">プレミアム</p>
-                  <p className="text-xs text-yellow-600">広告なし・お気に入り無制限</p>
+                  <p className="font-bold text-yellow-400">{t("more.premium", language)}</p>
+                  <p className="text-xs text-yellow-600">{t("more.premiumDesc", language)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -172,15 +257,26 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
 
         {/* AI Gas Price Prediction */}
         <div className="mb-6">
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">AIガソリン価格予測</h3>
-          <div className="rounded-xl bg-card border border-border p-4">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">{t("more.aiPrediction", language)}</h3>
+          <button
+            onClick={handleAIPredictionClick}
+            className={`w-full rounded-xl bg-card border border-border p-4 text-left ${!user ? "relative" : ""}`}
+          >
+            {!user && (
+              <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center z-10">
+                <div className="flex items-center gap-2 text-white">
+                  <Lock className="h-5 w-5" />
+                  <span className="font-medium">ログインで利用可能</span>
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                 <TrendingUp className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="font-medium text-foreground">レギュラーガソリン予測</p>
-                <p className="text-xs text-muted-foreground">AIによる価格トレンド分析（参考値）</p>
+                <p className="text-xs text-muted-foreground">{t("more.aiPredictionDesc", language)}</p>
               </div>
             </div>
 
@@ -203,22 +299,25 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
             <p className="text-xs text-muted-foreground">
               ※ 予測は過去データと原油先物指標に基づく参考値です。実際の価格と異なる場合があります。
             </p>
-          </div>
+          </button>
         </div>
 
         {/* Notifications Section */}
         <div className="mb-6">
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">通知</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">{t("more.notifications", language)}</h3>
           <div className="rounded-xl bg-card border border-border overflow-hidden">
             {/* Notification Center */}
-            <button className="w-full flex items-center justify-between px-4 py-3 border-b border-border hover:bg-secondary transition-colors">
+            <button
+              onClick={() => setCurrentPage("notifications")}
+              className="w-full flex items-center justify-between px-4 py-3 border-b border-border hover:bg-secondary transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card border border-border">
                   <Bell className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="text-left">
-                  <p className="font-medium text-foreground">通知センター</p>
-                  <p className="text-xs text-muted-foreground">未読 2件</p>
+                  <p className="font-medium text-foreground">{t("more.notificationCenter", language)}</p>
+                  <p className="text-xs text-muted-foreground">{t("more.unread", language)} 2件</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -236,12 +335,12 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
                   <Bell className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">価格アラート</p>
-                  <p className="text-xs text-muted-foreground">価格変動をお知らせ</p>
+                  <p className="font-medium text-foreground">{t("more.priceAlert", language)}</p>
+                  <p className="text-xs text-muted-foreground">{t("more.priceAlertDesc", language)}</p>
                 </div>
               </div>
               <button
-                onClick={() => setPriceAlert(!priceAlert)}
+                onClick={handlePriceAlertToggle}
                 className="text-primary"
               >
                 {priceAlert ? (
@@ -256,11 +355,12 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
 
         {/* Gasoline News Section */}
         <div className="mb-6">
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">ガソリン関連ニュース</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">{t("more.news", language)}</h3>
           <div className="space-y-3">
             {newsItems.map((news) => (
               <button
                 key={news.id}
+                onClick={() => handleNewsClick(news)}
                 className="w-full rounded-xl bg-card border border-border p-4 text-left hover:bg-secondary transition-colors"
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -280,42 +380,51 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
 
         {/* Settings Section */}
         <div className="mb-6">
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">設定</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">{t("more.settings", language)}</h3>
           <div className="rounded-xl bg-card border border-border overflow-hidden">
-            <button className="w-full flex items-center justify-between px-4 py-3 border-b border-border hover:bg-secondary transition-colors">
+            <button
+              onClick={() => setCurrentPage("region")}
+              className="w-full flex items-center justify-between px-4 py-3 border-b border-border hover:bg-secondary transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card border border-border">
                   <MapPin className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="text-left">
-                  <p className="font-medium text-foreground">表示地域</p>
-                  <p className="text-xs text-muted-foreground">関東エリア</p>
+                  <p className="font-medium text-foreground">{t("more.region", language)}</p>
+                  <p className="text-xs text-muted-foreground">{region}</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </button>
 
-            <button className="w-full flex items-center justify-between px-4 py-3 border-b border-border hover:bg-secondary transition-colors">
+            <button
+              onClick={() => setCurrentPage("language")}
+              className="w-full flex items-center justify-between px-4 py-3 border-b border-border hover:bg-secondary transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card border border-border">
                   <Globe className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="text-left">
-                  <p className="font-medium text-foreground">言語 / Language</p>
-                  <p className="text-xs text-muted-foreground">日本語</p>
+                  <p className="font-medium text-foreground">{t("more.language", language)}</p>
+                  <p className="text-xs text-muted-foreground">{LANGUAGE_LABELS[language]}</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </button>
 
-            <button className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary transition-colors">
+            <button
+              onClick={() => setCurrentPage("about")}
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card border border-border">
                   <Info className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="text-left">
-                  <p className="font-medium text-foreground">アプリについて</p>
-                  <p className="text-xs text-muted-foreground">バージョン 1.0.0</p>
+                  <p className="font-medium text-foreground">{t("more.about", language)}</p>
+                  <p className="text-xs text-muted-foreground">{t("more.version", language)} 1.0.0</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -323,6 +432,13 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
           </div>
         </div>
       </div>
+
+      {/* Login Prompt */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        language={language}
+      />
     </div>
   );
 }

@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Heart, MessageSquare, ShoppingCart } from "lucide-react";
+import { Plus, Search, Heart, MessageSquare, ShoppingCart, Lock, Car } from "lucide-react";
 import type { PlaceWithPrices, Profile, FuelType, PricePost } from "@/lib/types";
 import { FUEL_TYPE_LABELS } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import AdBanner from "@/components/ui/ad-banner";
+import LoginPrompt from "@/components/ui/login-prompt";
+import { getSettings } from "@/lib/settings";
+import type { Language } from "@/lib/i18n";
 
 interface PostTabProps {
   user: { email: string; id: string } | null;
@@ -41,7 +44,13 @@ export default function PostTab({
   const [sortBy, setSortBy] = useState<SortType>("new");
   const [posts, setPosts] = useState<PostWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showPostForm, setShowPostForm] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [language, setLanguage] = useState<Language>("ja");
+
+  useEffect(() => {
+    const settings = getSettings();
+    setLanguage(settings.language);
+  }, []);
 
   // Fetch recent posts
   useEffect(() => {
@@ -115,11 +124,97 @@ export default function PostTab({
     }
   };
 
+  const handleLikeClick = () => {
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    // Handle like
+  };
+
+  const handleCommentClick = () => {
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    // Handle comment
+  };
+
+  const handleTabChange = (tab: TabType) => {
+    if (tab === "car" && !user) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setActiveTab(tab);
+  };
+
   const filteredPosts = activeTab === "price" 
     ? posts 
     : activeTab === "car" 
     ? [] // No car posts yet
     : posts;
+
+  // Car community - login required
+  if (activeTab === "car" && !user) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <h1 className="text-2xl font-bold text-foreground">投稿</h1>
+          <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border">
+            <Search className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="border-b border-border">
+          <div className="flex">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+                  activeTab === tab.id
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {tab.label}
+                {activeTab === tab.id && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Login Required Content */}
+        <div className="flex-1 flex flex-col items-center justify-center p-4">
+          <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-card border-2 border-dashed border-primary/30">
+            <Lock className="h-10 w-10 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold text-foreground mb-2">
+            クルマコミュニティ
+          </h3>
+          <p className="text-muted-foreground text-center mb-6">
+            ログインするとクルマコミュニティが利用できます
+          </p>
+          <a
+            href="/auth/login"
+            className="rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground"
+          >
+            ログイン / 登録する
+          </a>
+        </div>
+
+        <LoginPrompt
+          isOpen={showLoginPrompt}
+          onClose={() => setShowLoginPrompt(false)}
+          language={language}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -137,13 +232,16 @@ export default function PostTab({
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
                 activeTab === tab.id
                   ? "text-primary"
                   : "text-muted-foreground"
               }`}
             >
+              {tab.id === "car" && !user && (
+                <Lock className="inline h-3 w-3 mr-1" />
+              )}
               {tab.label}
               {activeTab === tab.id && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
@@ -176,6 +274,24 @@ export default function PostTab({
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        ) : activeTab === "car" ? (
+          /* Car Community - Empty State */
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-primary/30">
+              <Car className="h-10 w-10 text-primary" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              クルマの投稿がありません
+            </h3>
+            <p className="text-muted-foreground mb-1">最初の投稿をしてみよう！</p>
+            <p className="text-sm text-muted-foreground mb-6">あなたの愛車を共有しましょう。</p>
+            <button
+              onClick={() => onOpenPostForm?.()}
+              className="rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground"
+            >
+              クルマを投稿する
+            </button>
           </div>
         ) : filteredPosts.length > 0 ? (
           <div className="space-y-3">
@@ -219,11 +335,17 @@ export default function PostTab({
                       価格情報
                     </span>
                     <div className="flex items-center gap-4">
-                      <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                      <button
+                        onClick={handleLikeClick}
+                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                      >
                         <Heart className="h-4 w-4" />
                         <span className="text-sm">0</span>
                       </button>
-                      <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                      <button
+                        onClick={handleCommentClick}
+                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                      >
                         <MessageSquare className="h-4 w-4" />
                         <span className="text-sm">コメント</span>
                       </button>
@@ -240,7 +362,7 @@ export default function PostTab({
               <ShoppingCart className="h-10 w-10 text-primary" />
             </div>
             <h3 className="text-xl font-bold text-foreground mb-2">
-              {activeTab === "car" ? "クルマの投稿がありません" : "近くに投稿がありません"}
+              近くに投稿がありません
             </h3>
             <p className="text-muted-foreground mb-1">最初の投稿をしてみよう！</p>
             <p className="text-sm text-muted-foreground mb-6">あなたの情報がドライバーの役に立ちます。</p>
@@ -261,6 +383,13 @@ export default function PostTab({
       >
         <Plus className="h-7 w-7" />
       </button>
+
+      {/* Login Prompt */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        language={language}
+      />
     </div>
   );
 }

@@ -15,6 +15,9 @@ import MoreTab from "@/components/tabs/more-tab";
 import { Loader2, MapPin } from "lucide-react";
 import type { PlaceWithPrices, PlaceType, Profile } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
+import LoginPrompt from "@/components/ui/login-prompt";
+import { shouldShowLoginPrompt, getSettings } from "@/lib/settings";
+import type { Language } from "@/lib/i18n";
 
 const MapView = dynamic(() => import("@/components/map/map-view"), {
   ssr: false,
@@ -52,6 +55,8 @@ export default function Home() {
   const [user, setUser] = useState<{ email: string; id: string } | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showPriceModal, setShowPriceModal] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [language, setLanguage] = useState<Language>("ja");
 
   // Build URL for fetching places
   const placesUrl = bounds
@@ -89,8 +94,19 @@ export default function Home() {
         if (profileData) {
           setProfile(profileData);
         }
+      } else {
+        // Show login prompt for guest users after a short delay
+        setTimeout(() => {
+          if (shouldShowLoginPrompt()) {
+            setShowLoginPrompt(true);
+          }
+        }, 2000);
       }
     };
+
+    // Load language settings
+    const settings = getSettings();
+    setLanguage(settings.language);
 
     getUser();
   }, []);
@@ -282,6 +298,13 @@ export default function Home() {
 
       {/* Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Login Prompt for Guest Users */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        language={language}
+      />
     </div>
   );
 }
