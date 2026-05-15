@@ -1,6 +1,6 @@
 "use client";
 
-import { List, MapIcon, ChevronUp } from "lucide-react";
+import { List, MapIcon, ChevronUp, Loader2 } from "lucide-react";
 import PlaceCard from "./place-card";
 import type { PlaceWithPrices } from "@/lib/types";
 
@@ -11,6 +11,7 @@ interface PlaceListProps {
   onShowDetail: (place: PlaceWithPrices) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  isLoading?: boolean;
 }
 
 function calculateDistance(
@@ -39,6 +40,7 @@ export default function PlaceList({
   onShowDetail,
   isExpanded,
   onToggleExpand,
+  isLoading = false,
 }: PlaceListProps) {
   const placesWithDistance = places.map((place) => ({
     ...place,
@@ -78,6 +80,9 @@ export default function PlaceList({
           <span className="text-sm font-medium text-card-foreground">
             周辺スポット ({places.length})
           </span>
+          {isLoading && (
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          )}
         </div>
         <button
           onClick={onToggleExpand}
@@ -103,6 +108,13 @@ export default function PlaceList({
                 onShowDetail={onShowDetail}
               />
             ))
+          ) : isLoading ? (
+            <div className="py-8 text-center">
+              <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin mb-2" />
+              <p className="text-muted-foreground">
+                スポットを検索中...
+              </p>
+            </div>
           ) : (
             <div className="py-8 text-center">
               <MapIcon className="h-12 w-12 mx-auto text-muted-foreground mb-2" />

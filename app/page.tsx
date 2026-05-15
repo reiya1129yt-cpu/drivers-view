@@ -58,7 +58,7 @@ export default function Home() {
     ? `/api/places?north=${bounds.north}&south=${bounds.south}&east=${bounds.east}&west=${bounds.west}&types=${selectedTypes.join(",")}`
     : null;
 
-  const { data, mutate } = useSWR<{ places: PlaceWithPrices[] }>(
+  const { data, mutate, isLoading } = useSWR<{ places: PlaceWithPrices[] }>(
     placesUrl,
     fetcher,
     {
@@ -68,6 +68,11 @@ export default function Home() {
   );
 
   const places = data?.places || [];
+  
+  // Debug: log places count
+  useEffect(() => {
+    console.log("[v0] Places count:", places.length, "isLoading:", isLoading);
+  }, [places.length, isLoading]);
 
   // Get user session and profile
   useEffect(() => {
@@ -236,6 +241,7 @@ export default function Home() {
               onShowDetail={setSelectedPlace}
               isExpanded={isListExpanded}
               onToggleExpand={() => setIsListExpanded(!isListExpanded)}
+              isLoading={isLoading}
             />
           </>
         )}
