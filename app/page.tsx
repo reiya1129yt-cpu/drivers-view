@@ -10,7 +10,11 @@ import AdBanner from "@/components/ui/ad-banner";
 import PlaceList from "@/components/place/place-list";
 import PlaceDetail from "@/components/place/place-detail";
 import PricePostModal from "@/components/place/price-post-modal";
+import PostTypeSelector from "@/components/post/post-type-selector";
+import CarPostForm from "@/components/post/car-post-form";
+import GatheringPostForm from "@/components/post/gathering-post-form";
 import PostTab from "@/components/tabs/post-tab";
+import type { CommunityPostType } from "@/lib/types";
 import MoreTab from "@/components/tabs/more-tab";
 import { Loader2, MapPin } from "lucide-react";
 import type { PlaceWithPrices, PlaceType, Profile } from "@/lib/types";
@@ -55,6 +59,9 @@ export default function Home() {
   const [user, setUser] = useState<{ email: string; id: string } | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showPriceModal, setShowPriceModal] = useState(false);
+  const [showPostTypeSelector, setShowPostTypeSelector] = useState(false);
+  const [showCarPostForm, setShowCarPostForm] = useState(false);
+  const [showGatheringPostForm, setShowGatheringPostForm] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [language, setLanguage] = useState<Language>("ja");
 
@@ -170,11 +177,22 @@ export default function Home() {
 
   const handleOpenPostForm = useCallback(() => {
     if (user) {
-      setShowPriceModal(true);
+      setShowPostTypeSelector(true);
     } else {
       window.location.href = "/auth/login";
     }
   }, [user]);
+
+  const handleSelectPostType = useCallback((type: CommunityPostType) => {
+    setShowPostTypeSelector(false);
+    if (type === "price") {
+      setShowPriceModal(true);
+    } else if (type === "car") {
+      setShowCarPostForm(true);
+    } else if (type === "gathering") {
+      setShowGatheringPostForm(true);
+    }
+  }, []);
 
   const handlePricePosted = useCallback(() => {
     mutate();
@@ -283,6 +301,13 @@ export default function Home() {
           />
         )}
 
+        {/* Post Type Selector */}
+        <PostTypeSelector
+          isOpen={showPostTypeSelector}
+          onClose={() => setShowPostTypeSelector(false)}
+          onSelectType={handleSelectPostType}
+        />
+
         {/* Price Post Modal */}
         {user && (
           <PricePostModal
@@ -290,6 +315,26 @@ export default function Home() {
             onClose={() => setShowPriceModal(false)}
             places={places}
             userLocation={center}
+            userId={user.id}
+            onSuccess={handlePricePosted}
+          />
+        )}
+
+        {/* Car Post Form */}
+        {user && (
+          <CarPostForm
+            isOpen={showCarPostForm}
+            onClose={() => setShowCarPostForm(false)}
+            userId={user.id}
+            onSuccess={handlePricePosted}
+          />
+        )}
+
+        {/* Gathering Post Form */}
+        {user && (
+          <GatheringPostForm
+            isOpen={showGatheringPostForm}
+            onClose={() => setShowGatheringPostForm(false)}
             userId={user.id}
             onSuccess={handlePricePosted}
           />

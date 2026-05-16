@@ -92,3 +92,47 @@ export const PLACE_TYPE_ICONS: Record<PlaceType, string> = {
   pa_sa: "parking",
   ev_charging: "zap",
 };
+
+// Community Post Types
+export type CommunityPostType = "price" | "car" | "gathering";
+
+export interface CommunityPost {
+  id: string;
+  post_type: CommunityPostType;
+  content: string | null;
+  image_url: string | null;
+  user_id: string;
+  title: string | null;
+  video_url: string | null;
+  location_name: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  start_time: string | null;
+  end_time: string | null;
+  gathering_type: string | null;
+  participation_requirements: string | null;
+  is_gathering: boolean;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  profile?: {
+    display_name: string | null;
+  };
+  likes_count?: number;
+  comments_count?: number;
+}
+
+export type GatheringType = "touring" | "meetup" | "drive" | "other";
+
+export const GATHERING_TYPE_LABELS: Record<GatheringType, string> = {
+  touring: "ツーリング",
+  meetup: "オフ会",
+  drive: "ドライブ",
+  other: "その他",
+};
+
+export const POST_TYPE_LABELS: Record<CommunityPostType, string> = {
+  price: "価格情報",
+  car: "クルマ投稿",
+  gathering: "募集",
+};
