@@ -107,11 +107,13 @@ export interface CommunityPost {
   location_name: string | null;
   location_lat: number | null;
   location_lng: number | null;
+  location_category: string | null;
   start_time: string | null;
   end_time: string | null;
   gathering_type: string | null;
   participation_requirements: string | null;
   is_gathering: boolean;
+  views_count: number;
   created_at: string;
   updated_at: string;
   // Joined fields

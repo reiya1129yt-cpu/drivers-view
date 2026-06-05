@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Camera, User, Car, Loader2, Trash2, Heart, MessageCircle, Eye, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { Profile, CommunityPostType, POST_TYPE_LABELS } from "@/lib/types";
+import type { Profile, CommunityPostType, POST_TYPE_LABELS, CommunityPost } from "@/lib/types";
 
 interface MyPageProps {
   user: { email: string; id: string };
@@ -84,7 +84,7 @@ export default function MyPage({ user, profile, onBack, onProfileUpdate }: MyPag
     if (!error && data) {
       // Get likes and comments counts
       const postsWithCounts = await Promise.all(
-        data.map(async (post) => {
+        data.map(async (post: CommunityPost) => {
           const [likesResult, commentsResult] = await Promise.all([
             supabase.from("post_likes").select("id", { count: "exact" }).eq("post_id", post.id),
             supabase.from("post_comments").select("id", { count: "exact" }).eq("post_id", post.id),
