@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
+  ArrowLeft,
   Bell,
   ChevronRight,
   MapPin,
@@ -152,13 +153,25 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
   if (currentPage === "notifications") {
     if (!user) {
       return (
-        <div className="flex flex-col h-full bg-background items-center justify-center p-4">
-          <Lock className="h-16 w-16 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-foreground mb-2">ログインが必要です</p>
-          <p className="text-sm text-muted-foreground text-center mb-6">通知設定を利用するにはログインしてください</p>
-          <a href="/auth/login" className="rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground">
-            ログイン
-          </a>
+        <div className="flex flex-col h-full bg-background">
+          {/* Header with back button */}
+          <div className="flex items-center gap-3 px-4 py-4 border-b border-border">
+            <button 
+              onClick={() => setCurrentPage("main")} 
+              className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary"
+            >
+              <ArrowLeft className="h-5 w-5 text-foreground" />
+            </button>
+            <h1 className="text-xl font-bold text-foreground">通知設定</h1>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center p-4">
+            <Lock className="h-16 w-16 text-muted-foreground mb-4" />
+            <p className="text-lg font-medium text-foreground mb-2">ログインが必要です</p>
+            <p className="text-sm text-muted-foreground text-center mb-6">通知設定を利用するにはログインしてください</p>
+            <a href="/auth/login" className="rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground">
+              ログイン
+            </a>
+          </div>
         </div>
       );
     }

@@ -1,22 +1,24 @@
 "use client";
 
-import { Map, MessageSquare, MoreVertical } from "lucide-react";
+import { Map, MessageSquare, MoreVertical, Mail } from "lucide-react";
 
-export type TabType = "map" | "post" | "more";
+export type TabType = "map" | "post" | "message" | "more";
 
 interface BottomNavProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
   hasUnread?: boolean;
+  unreadMessageCount?: number;
 }
 
 const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
   { id: "map", label: "マップ", icon: <Map className="h-6 w-6" /> },
   { id: "post", label: "投稿", icon: <MessageSquare className="h-6 w-6" /> },
+  { id: "message", label: "メッセージ", icon: <Mail className="h-6 w-6" /> },
   { id: "more", label: "その他", icon: <MoreVertical className="h-6 w-6" /> },
 ];
 
-export default function BottomNav({ activeTab, onTabChange, hasUnread }: BottomNavProps) {
+export default function BottomNav({ activeTab, onTabChange, hasUnread, unreadMessageCount }: BottomNavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-area-pb">
       <div className="flex h-16 items-center justify-around">
@@ -37,6 +39,12 @@ export default function BottomNav({ activeTab, onTabChange, hasUnread }: BottomN
                 {/* Show dot indicator for post tab when there are unread items */}
                 {id === "post" && hasUnread && (
                   <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" />
+                )}
+                {/* Show message count badge */}
+                {id === "message" && unreadMessageCount && unreadMessageCount > 0 && (
+                  <span className="absolute -top-1 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
+                    {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                  </span>
                 )}
               </div>
               <span className="text-xs font-medium">{label}</span>
