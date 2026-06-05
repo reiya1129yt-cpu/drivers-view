@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { X, Loader2, ImagePlus, Video, Trash2 } from "lucide-react";
+import { X, Loader2, ImagePlus, MapPin, Trash2, Plus, ChevronDown, BarChart3, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface CarPostFormProps {
@@ -11,6 +11,26 @@ interface CarPostFormProps {
   onSuccess?: () => void;
 }
 
+type LocationCategory = "meeting_spot" | "scenic_spot" | "orbis" | "other";
+
+const LOCATION_CATEGORIES: Record<LocationCategory, string> = {
+  meeting_spot: "集合場所",
+  scenic_spot: "景色スポット",
+  orbis: "オービス",
+  other: "その他",
+};
+
+const POLL_DURATIONS = [
+  { value: 30, label: "30分" },
+  { value: 60, label: "1時間" },
+  { value: 180, label: "3時間" },
+  { value: 360, label: "6時間" },
+  { value: 720, label: "12時間" },
+  { value: 1440, label: "24時間" },
+  { value: 4320, label: "3日" },
+  { value: 7200, label: "5日" },
+];
+
 export default function CarPostForm({
   isOpen,
   onClose,
@@ -18,41 +38,84 @@ export default function CarPostForm({
   onSuccess,
 }: CarPostFormProps) {
   const [content, setContent] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState("");
+  const [images, setImages] = useState<{ file: File; preview: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Location state
+  const [locationName, setLocationName] = useState("");
+  const [locationCategory, setLocationCategory] = useState<LocationCategory | "">("");
+  const [locationLat, setLocationLat] = useState<number | null>(null);
+  const [locationLng, setLocationLng] = useState<number | null>(null);
+  const [showLocationInput, setShowLocationInput] = useState(false);
+
+  // Poll state
+  const [pollEnabled, setPollEnabled] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+  const [pollDuration, setPollDuration] = useState(1440); // Default 24 hours
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    const remainingSlots = 5 - images.length;
+    const filesToAdd = files.slice(0, remainingSlots);
+
+    for (const file of filesToAdd) {
       if (file.size > 5 * 1024 * 1024) {
         setError("画像は5MB以下にしてください");
-        return;
+        continue;
       }
-      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        setImages((prev) => [...prev, { file, preview: reader.result as string }]);
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddPollOption = () => {
+    if (pollOptions.length < 5) {
+      setPollOptions([...pollOptions, ""]);
+    }
+  };
+
+  const handleRemovePollOption = (index: number) => {
+    if (pollOptions.length > 2) {
+      setPollOptions(pollOptions.filter((_, i) => i !== index));
+    }
+  };
+
+  const handlePollOptionChange = (index: number, value: string) => {
+    const newOptions = [...pollOptions];
+    newOptions[index] = value;
+    setPollOptions(newOptions);
+  };
+
   const handleSubmit = async () => {
-    if (!content.trim() && !imageFile && !videoUrl) {
-      setError("内容、画像、または動画URLを入力してください");
+    if (!content.trim()) {
+      setError("本文を入力してください");
       return;
+    }
+
+    // Validate poll if enabled
+    if (pollEnabled) {
+      if (!pollQuestion.trim()) {
+        setError("アンケートの質問を入力してください");
+        return;
+      }
+      const validOptions = pollOptions.filter((opt) => opt.trim());
+      if (validOptions.length < 2) {
+        setError("アンケートの選択肢を2つ以上入力してください");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -62,15 +125,16 @@ export default function CarPostForm({
       const supabase = createClient();
       let imageUrl = null;
 
-      // Upload image if selected
-      if (imageFile) {
-        const fileExt = imageFile.name.split(".").pop();
+      // Upload first image if any
+      if (images.length > 0) {
+        const firstImage = images[0];
+        const fileExt = firstImage.file.name.split(".").pop();
         const fileName = `${userId}-${Date.now()}.${fileExt}`;
         const filePath = `car-posts/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("posts")
-          .upload(filePath, imageFile);
+          .upload(filePath, firstImage.file);
 
         if (uploadError) {
           throw uploadError;
@@ -83,19 +147,58 @@ export default function CarPostForm({
       }
 
       // Insert post
-      const { error: insertError } = await supabase
+      const { data: postData, error: insertError } = await supabase
         .from("community_posts")
         .insert({
           post_type: "car",
-          content: content.trim() || null,
+          content: content.trim(),
           image_url: imageUrl,
-          video_url: videoUrl.trim() || null,
           user_id: userId,
           is_gathering: false,
-        });
+          location_name: locationName.trim() || null,
+          location_lat: locationLat,
+          location_lng: locationLng,
+          location_category: locationCategory || null,
+        })
+        .select()
+        .single();
 
       if (insertError) {
         throw insertError;
+      }
+
+      // Create poll if enabled
+      if (pollEnabled && postData) {
+        const endsAt = new Date(Date.now() + pollDuration * 60 * 1000);
+        
+        const { data: pollData, error: pollError } = await supabase
+          .from("polls")
+          .insert({
+            post_id: postData.id,
+            question: pollQuestion.trim(),
+            ends_at: endsAt.toISOString(),
+          })
+          .select()
+          .single();
+
+        if (pollError) {
+          console.error("Poll creation error:", pollError);
+        } else if (pollData) {
+          // Insert poll options
+          const validOptions = pollOptions.filter((opt) => opt.trim());
+          const optionsToInsert = validOptions.map((opt) => ({
+            poll_id: pollData.id,
+            option_text: opt.trim(),
+          }));
+
+          const { error: optionsError } = await supabase
+            .from("poll_options")
+            .insert(optionsToInsert);
+
+          if (optionsError) {
+            console.error("Poll options error:", optionsError);
+          }
+        }
       }
 
       // Award points (5 points per car post)
@@ -105,10 +208,7 @@ export default function CarPostForm({
       });
 
       // Reset form
-      setContent("");
-      setImageFile(null);
-      setImagePreview(null);
-      setVideoUrl("");
+      resetForm();
       onClose();
       onSuccess?.();
     } catch (err) {
@@ -119,12 +219,23 @@ export default function CarPostForm({
     }
   };
 
-  const handleClose = () => {
+  const resetForm = () => {
     setContent("");
-    setImageFile(null);
-    setImagePreview(null);
-    setVideoUrl("");
+    setImages([]);
+    setLocationName("");
+    setLocationCategory("");
+    setLocationLat(null);
+    setLocationLng(null);
+    setShowLocationInput(false);
+    setPollEnabled(false);
+    setPollQuestion("");
+    setPollOptions(["", ""]);
+    setPollDuration(1440);
     setError(null);
+  };
+
+  const handleClose = () => {
+    resetForm();
     onClose();
   };
 
@@ -155,7 +266,7 @@ export default function CarPostForm({
           {/* Content Input */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-foreground mb-2">
-              内容
+              本文 <span className="text-red-400">*</span>
             </label>
             <textarea
               value={content}
@@ -173,62 +284,188 @@ export default function CarPostForm({
           {/* Image Upload */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-foreground mb-2">
-              画像
+              画像（最大5枚）
             </label>
-            {imagePreview ? (
-              <div className="relative rounded-lg overflow-hidden">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-48 object-cover"
-                />
+            <div className="grid grid-cols-3 gap-2">
+              {images.map((img, index) => (
+                <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+                  <img
+                    src={img.preview}
+                    alt={`Preview ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    onClick={() => handleRemoveImage(index)}
+                    className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              {images.length < 5 && (
                 <button
-                  onClick={handleRemoveImage}
-                  className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <ImagePlus className="h-6 w-6" />
+                  <span className="text-xs mt-1">追加</span>
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-              >
-                <ImagePlus className="h-8 w-8" />
-                <span className="text-sm">タップして画像を選択</span>
-                <span className="text-xs">最大5MB</span>
-              </button>
-            )}
+              )}
+            </div>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               onChange={handleImageSelect}
               className="hidden"
             />
           </div>
 
-          {/* Video URL */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-foreground mb-2">
-              <div className="flex items-center gap-2">
-                <Video className="h-4 w-4" />
-                動画URL（YouTube, TikTokなど）
+          {/* Location Input */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                場所
+              </label>
+              <button
+                onClick={() => setShowLocationInput(!showLocationInput)}
+                className="text-sm text-primary"
+              >
+                {showLocationInput ? "閉じる" : "追加"}
+              </button>
+            </div>
+            {showLocationInput && (
+              <div className="space-y-3 rounded-lg bg-background border border-border p-3">
+                <input
+                  type="text"
+                  value={locationName}
+                  onChange={(e) => setLocationName(e.target.value)}
+                  placeholder="場所名を入力（例: 東京タワー）"
+                  className="w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                />
+                {locationName && (
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-2">
+                      カテゴリを選択
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(Object.entries(LOCATION_CATEGORIES) as [LocationCategory, string][]).map(
+                        ([key, label]) => (
+                          <button
+                            key={key}
+                            onClick={() => setLocationCategory(key)}
+                            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                              locationCategory === key
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-card border border-border text-foreground hover:bg-secondary"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            </label>
-            <input
-              type="url"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="https://youtube.com/watch?v=..."
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-            />
+            )}
+          </div>
+
+          {/* Poll Section */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                アンケート
+              </label>
+              <button
+                onClick={() => setPollEnabled(!pollEnabled)}
+                className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+                  pollEnabled
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card border border-border text-muted-foreground"
+                }`}
+              >
+                {pollEnabled ? "ON" : "OFF"}
+              </button>
+            </div>
+            {pollEnabled && (
+              <div className="space-y-3 rounded-lg bg-background border border-border p-3">
+                <input
+                  type="text"
+                  value={pollQuestion}
+                  onChange={(e) => setPollQuestion(e.target.value)}
+                  placeholder="質問を入力（例: あなたの好きな車は？）"
+                  maxLength={100}
+                  className="w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                />
+                <div className="space-y-2">
+                  <label className="block text-xs text-muted-foreground">
+                    選択肢（2〜5つ）
+                  </label>
+                  {pollOptions.map((option, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => handlePollOptionChange(index, e.target.value)}
+                        placeholder={`選択肢 ${index + 1}`}
+                        maxLength={50}
+                        className="flex-1 rounded-lg border border-border bg-card px-4 py-2 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                      />
+                      {pollOptions.length > 2 && (
+                        <button
+                          onClick={() => handleRemovePollOption(index)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-secondary text-muted-foreground"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {pollOptions.length < 5 && (
+                    <button
+                      onClick={handleAddPollOption}
+                      className="flex items-center gap-2 text-sm text-primary"
+                    >
+                      <Plus className="h-4 w-4" />
+                      選択肢を追加
+                    </button>
+                  )}
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                    <Clock className="h-3 w-3" />
+                    結果公開までの時間
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={pollDuration}
+                      onChange={(e) => setPollDuration(Number(e.target.value))}
+                      className="w-full appearance-none rounded-lg border border-border bg-card px-4 py-2 pr-10 text-foreground focus:border-primary focus:outline-none"
+                    >
+                      {POLL_DURATIONS.map((duration) => (
+                        <option key={duration.value} value={duration.value}>
+                          {duration.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ※ 選択した時間まで投稿主のみ結果を閲覧可能
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || (!content.trim() && !imageFile && !videoUrl)}
+            disabled={isSubmitting || !content.trim()}
             className="w-full rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (

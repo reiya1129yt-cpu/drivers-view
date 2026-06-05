@@ -2,17 +2,47 @@
 
 import type { Language } from "./i18n";
 
-export type Region = "kanto" | "kansai" | "chubu" | "tohoku" | "kyushu" | "hokkaido" | "chugoku" | "shikoku";
+export type Region = "all" | "hokkaido" | "tohoku" | "kanto" | "chubu" | "kansai" | "chugoku" | "shikoku" | "kyushu" | "okinawa";
 
 export const REGION_LABELS: Record<Region, Record<Language, string>> = {
-  kanto: { ja: "関東エリア", en: "Kanto Area", zh: "关东地区", ko: "간토 지역", es: "Área de Kanto" },
-  kansai: { ja: "関西エリア", en: "Kansai Area", zh: "关西地区", ko: "간사이 지역", es: "Área de Kansai" },
-  chubu: { ja: "中部エリア", en: "Chubu Area", zh: "中部地区", ko: "주부 지역", es: "Área de Chubu" },
-  tohoku: { ja: "東北エリア", en: "Tohoku Area", zh: "东北地区", ko: "도호쿠 지역", es: "Área de Tohoku" },
-  kyushu: { ja: "九州エリア", en: "Kyushu Area", zh: "九州地区", ko: "규슈 지역", es: "Área de Kyushu" },
-  hokkaido: { ja: "北海道エリア", en: "Hokkaido Area", zh: "北海道地区", ko: "홋카이도 지역", es: "Área de Hokkaido" },
-  chugoku: { ja: "中国エリア", en: "Chugoku Area", zh: "中国地区", ko: "주고쿠 지역", es: "Área de Chugoku" },
-  shikoku: { ja: "四国エリア", en: "Shikoku Area", zh: "四国地区", ko: "시코쿠 지역", es: "Área de Shikoku" },
+  all: { ja: "全国", en: "All Japan", zh: "全国", ko: "전국", es: "Todo Japón" },
+  hokkaido: { ja: "北海道", en: "Hokkaido", zh: "北海道", ko: "홋카이도", es: "Hokkaido" },
+  tohoku: { ja: "東北", en: "Tohoku", zh: "东北", ko: "도호쿠", es: "Tohoku" },
+  kanto: { ja: "関東", en: "Kanto", zh: "关东", ko: "간토", es: "Kanto" },
+  chubu: { ja: "中部", en: "Chubu", zh: "中部", ko: "주부", es: "Chubu" },
+  kansai: { ja: "関西", en: "Kansai", zh: "关西", ko: "간사이", es: "Kansai" },
+  chugoku: { ja: "中国", en: "Chugoku", zh: "中国地区", ko: "주고쿠", es: "Chugoku" },
+  shikoku: { ja: "四国", en: "Shikoku", zh: "四国", ko: "시코쿠", es: "Shikoku" },
+  kyushu: { ja: "九州", en: "Kyushu", zh: "九州", ko: "규슈", es: "Kyushu" },
+  okinawa: { ja: "沖縄", en: "Okinawa", zh: "冲绳", ko: "오키나와", es: "Okinawa" },
+};
+
+// Region center coordinates for map
+export const REGION_CENTERS: Record<Region, { lat: number; lng: number; zoom: number }> = {
+  all: { lat: 36.5, lng: 138.0, zoom: 5 },
+  hokkaido: { lat: 43.06, lng: 141.35, zoom: 7 },
+  tohoku: { lat: 39.7, lng: 140.1, zoom: 7 },
+  kanto: { lat: 35.69, lng: 139.69, zoom: 8 },
+  chubu: { lat: 35.18, lng: 136.91, zoom: 7 },
+  kansai: { lat: 34.69, lng: 135.50, zoom: 8 },
+  chugoku: { lat: 34.40, lng: 132.46, zoom: 7 },
+  shikoku: { lat: 33.84, lng: 133.54, zoom: 8 },
+  kyushu: { lat: 33.59, lng: 130.40, zoom: 7 },
+  okinawa: { lat: 26.21, lng: 127.68, zoom: 9 },
+};
+
+// Prefecture list for each region
+export const PREFECTURES: Record<Region, string[]> = {
+  all: [],
+  hokkaido: ["北海道"],
+  tohoku: ["青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県"],
+  kanto: ["茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県"],
+  chubu: ["新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県", "静岡県", "愛知県"],
+  kansai: ["三重県", "滋賀県", "京都府", "大阪府", "兵庫県", "奈良県", "和歌山県"],
+  chugoku: ["鳥取県", "島根県", "岡山県", "広島県", "山口県"],
+  shikoku: ["徳島県", "香川県", "愛媛県", "高知県"],
+  kyushu: ["福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県"],
+  okinawa: ["沖縄県"],
 };
 
 export interface AppSettings {

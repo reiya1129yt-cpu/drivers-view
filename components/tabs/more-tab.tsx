@@ -17,7 +17,7 @@ import {
 import type { Profile } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { getSettings, saveSettings, REGION_LABELS } from "@/lib/settings";
+import { getSettings, saveSettings, REGION_LABELS, type Region } from "@/lib/settings";
 import { t, LANGUAGE_LABELS, type Language } from "@/lib/i18n";
 import RegionSettings from "@/components/settings/region-settings";
 import LanguageSettings from "@/components/settings/language-settings";
@@ -123,6 +123,10 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
     setRegion(REGION_LABELS[settings.region][lang]);
   };
 
+  const handleRegionChange = (newRegion: Region) => {
+    setRegion(REGION_LABELS[newRegion][language]);
+  };
+
   const handleNewsClick = (news: NewsItem) => {
     setSelectedNews(news);
     setCurrentPage("news");
@@ -138,7 +142,7 @@ export default function MoreTab({ user, profile }: MoreTabProps) {
 
   // Show settings pages
   if (currentPage === "region") {
-    return <RegionSettings onBack={() => setCurrentPage("main")} language={language} />;
+    return <RegionSettings onBack={() => setCurrentPage("main")} language={language} onRegionChange={handleRegionChange} />;
   }
 
   if (currentPage === "language") {

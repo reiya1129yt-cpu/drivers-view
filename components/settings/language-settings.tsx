@@ -24,6 +24,8 @@ export default function LanguageSettings({ onBack, onLanguageChange }: LanguageS
     setSelectedLanguage(lang);
     saveSettings({ language: lang });
     onLanguageChange(lang);
+    // Auto return to previous screen after selection
+    onBack();
   };
 
   return (

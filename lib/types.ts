@@ -136,3 +136,45 @@ export const POST_TYPE_LABELS: Record<CommunityPostType, string> = {
   car: "クルマ投稿",
   gathering: "募集",
 };
+
+// Location Categories for car posts
+export type LocationCategory = "meeting_spot" | "scenic_spot" | "orbis" | "other";
+
+export const LOCATION_CATEGORY_LABELS: Record<LocationCategory, string> = {
+  meeting_spot: "集合場所",
+  scenic_spot: "景色スポット",
+  orbis: "オービス",
+  other: "その他",
+};
+
+// Poll types
+export interface Poll {
+  id: string;
+  post_id: string;
+  question: string;
+  ends_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PollOption {
+  id: string;
+  poll_id: string;
+  option_text: string;
+  votes_count: number;
+  created_at: string;
+}
+
+export interface PollVote {
+  id: string;
+  poll_id: string;
+  option_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+// Extended Profile with new fields
+export interface ExtendedProfile extends Profile {
+  avatar_url: string | null;
+  car_info: string | null;
+}

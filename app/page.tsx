@@ -14,6 +14,7 @@ import PostTypeSelector from "@/components/post/post-type-selector";
 import CarPostForm from "@/components/post/car-post-form";
 import GatheringPostForm from "@/components/post/gathering-post-form";
 import PostTab from "@/components/tabs/post-tab";
+import MyPage from "@/components/profile/my-page";
 import type { CommunityPostType } from "@/lib/types";
 import MoreTab from "@/components/tabs/more-tab";
 import { Loader2, MapPin } from "lucide-react";
@@ -62,6 +63,7 @@ export default function Home() {
   const [showPostTypeSelector, setShowPostTypeSelector] = useState(false);
   const [showCarPostForm, setShowCarPostForm] = useState(false);
   const [showGatheringPostForm, setShowGatheringPostForm] = useState(false);
+  const [showMyPage, setShowMyPage] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [language, setLanguage] = useState<Language>("ja");
 
@@ -275,7 +277,7 @@ export default function Home() {
           </>
         )}
 
-        {activeTab === "post" && (
+        {activeTab === "post" && !showMyPage && (
           <PostTab
             user={user}
             profile={profile}
@@ -283,6 +285,16 @@ export default function Home() {
             userLocation={center}
             onPricePosted={handlePricePosted}
             onOpenPostForm={handleOpenPostForm}
+            onOpenMyPage={() => setShowMyPage(true)}
+          />
+        )}
+
+        {activeTab === "post" && showMyPage && user && (
+          <MyPage
+            user={user}
+            profile={profile}
+            onBack={() => setShowMyPage(false)}
+            onProfileUpdate={(updatedProfile) => setProfile(updatedProfile)}
           />
         )}
 

@@ -13,6 +13,7 @@ import {
   MapPin,
   Calendar,
   Play,
+  User,
 } from "lucide-react";
 import type {
   PlaceWithPrices,
@@ -35,6 +36,7 @@ interface PostTabProps {
   userLocation: [number, number];
   onPricePosted?: () => void;
   onOpenPostForm?: () => void;
+  onOpenMyPage?: () => void;
 }
 
 type TabType = "all" | "price" | "car" | "gathering";
@@ -57,6 +59,7 @@ export default function PostTab({
   userLocation,
   onPricePosted,
   onOpenPostForm,
+  onOpenMyPage,
 }: PostTabProps) {
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [sortBy, setSortBy] = useState<SortType>("new");
@@ -272,9 +275,19 @@ export default function PostTab({
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <h1 className="text-2xl font-bold text-foreground">投稿</h1>
-          <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border">
-            <Search className="h-5 w-5 text-muted-foreground" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border">
+              <Search className="h-5 w-5 text-muted-foreground" />
+            </button>
+            {user && (
+              <button
+                onClick={onOpenMyPage}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/30 overflow-hidden"
+              >
+                <User className="h-5 w-5 text-primary" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}
@@ -580,9 +593,19 @@ export default function PostTab({
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <h1 className="text-2xl font-bold text-foreground">投稿</h1>
-        <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border">
-          <Search className="h-5 w-5 text-muted-foreground" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border">
+            <Search className="h-5 w-5 text-muted-foreground" />
+          </button>
+          {user && (
+            <button
+              onClick={onOpenMyPage}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/30 overflow-hidden"
+            >
+              <User className="h-5 w-5 text-primary" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}

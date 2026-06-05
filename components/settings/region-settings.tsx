@@ -8,11 +8,12 @@ import type { Language } from "@/lib/i18n";
 interface RegionSettingsProps {
   onBack: () => void;
   language: Language;
+  onRegionChange?: (region: Region) => void;
 }
 
-const regions: Region[] = ["kanto", "kansai", "chubu", "tohoku", "kyushu", "hokkaido", "chugoku", "shikoku"];
+const regions: Region[] = ["all", "hokkaido", "tohoku", "kanto", "chubu", "kansai", "chugoku", "shikoku", "kyushu", "okinawa"];
 
-export default function RegionSettings({ onBack, language }: RegionSettingsProps) {
+export default function RegionSettings({ onBack, language, onRegionChange }: RegionSettingsProps) {
   const [selectedRegion, setSelectedRegion] = useState<Region>("kanto");
 
   useEffect(() => {
@@ -23,6 +24,9 @@ export default function RegionSettings({ onBack, language }: RegionSettingsProps
   const handleSelect = (region: Region) => {
     setSelectedRegion(region);
     saveSettings({ region });
+    onRegionChange?.(region);
+    // Auto return to previous screen after selection
+    onBack();
   };
 
   return (
